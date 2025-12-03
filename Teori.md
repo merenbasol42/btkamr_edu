@@ -1486,7 +1486,7 @@ Bunlardan yola çıkarak problemimizi şöyle tanımlayabiliriz
 
 #### **1. Tanımlar**
 
-- **\( d_\ell \)**: Sol tekerin aldığı yol  
+- $d_\ell$: Sol tekerin aldığı yol  
 - **\( d_r \)**: Sağ tekerin aldığı yol  
 - **\( L \)**: İki teker arası mesafe  
 - **\( x_0, y_0 \)**: Başlangıç konumu  
