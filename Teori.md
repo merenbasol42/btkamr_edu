@@ -21,12 +21,12 @@
   3.7 [Xacro Aracı](#hid-3-7)
 
 4. **[Simülasyon (Gazebo)](#hid-4)**  
-  4.1 [ROS bağlantısı](#hid-4-1)  
-  4.2 [Pluginler](#hid-4-2)  
-  4.3 [Sensörler](#hid-4-3)  
-  4.4 [Temel SDF](#hid-4-4)
+  4.4 [Temel SDF](#hid-4-1)
+  4.1 [ROS bağlantısı](#hid-4-2)  
+  4.2 [Pluginler](#hid-4-3)  
+  4.3 [Sensörler](#hid-4-4)  
 
-5. **[Haritalama (slam_toolbox)](#hid-5)**  
+5. **[Haritalama (slam_toolbox)](#hid-5)**   
   5.1 ['slam_toolbox' Çalışma Mantığı](#hid-5-1)  
   5.2 [online-offline, sync-async mantığı](#hid-5-2)  
   5.3 [Parametremeler](#hid-5-3)  
@@ -966,7 +966,7 @@ sudo apt install ros-${ROS_DISTRO}-ros-gz-bridge
 
 <br/>
 
-<h2 id="hid-4-2">Plugin Anlatısı</h2>
+<h2 id="hid-4-2">4.2 Plugin Anlatısı</h2>
 
 Gazebo’da *plugin*, simülasyon ortamındaki bir modelin, sensörün veya dünya bileşeninin davranışını tanımlayan, C++ ile yazılmış bir yazılım modülüdür. Tek başına bir model sadece geometri, kütle ve bağlantılardan ibarettir; hareket etmez, sensör üretmez, kontrol edilemez. İşte plugin’ler bu boşluğu doldurur ve simülasyona “davranış” kazandırır.
 
@@ -992,7 +992,7 @@ Plugin’ler SDF dosyasında ilgili modele şu şekilde eklenir:
 
 Gazebo, modeli yüklerken ilgili `.so` dosyasını belleğe alır ve plugin’in çalışma döngüsünü simülasyonun döngüsüne bağlar. Böylece model statik bir tanım olmaktan çıkar, davranış üretebilen bir robot hâline gelir.
 
-### **Plugin Türleri**
+### Plugin Türleri
 
 * **Model Plugin**: Robot veya herhangi bir nesnenin davranışını kontrol eder.
 * **Sensor Plugin**: Sensör verisinin nasıl üretileceğini belirler.
@@ -1003,11 +1003,10 @@ Bu ayrım kullanıcı için genellikle kritik olmasa da, plugin’lerin hangi se
 
 ---
 
-### **AMR İçin Gereken Pluginler**
+### AMR İçin Gereken Pluginler
 
 Modern bir AMR’ın Gazebo ortamında işlevsel olabilmesi için, robotun fiziksel davranışlarını ve ROS2 tarafındaki temel veri akışını doğru şekilde simüle etmek gerekir. Bu amaçla bazı kritik plugin’ler kullanılır. Aşağıdaki başlıklar, tipik bir diferansiyel tahrikli mobil robotun ihtiyaç duyduğu temel plugin’leri özetlemektedir.
 
----
 
 #### **Joint State Publisher**
 
@@ -1133,7 +1132,264 @@ Bu üç plugin birlikte bir AMR’ın Gazebo simülasyonda “gerçek robot gibi
 
 <br/>	
 
-<h2 id="hid-4-3">Sensörler</h2>  
+<h2 id="hid-4-3">4.3 Sensörler</h2>  
+
+Sensör, fiziksel bir olayı tespit etmek amacıyla bir çıkış sinyali üreten cihazdır. Basitçe, çevrelerindeki bir özelliği (örneğin ışığı, sıcaklığı, nem oranını, hareketi veya ses seviyesini) ölçen ve bu özellikleri genellikle bir elektrik sinyali haline getiren cihaz olarak tanımlanabilir.
+
+Gerçek robotlar çevrelerini sensörlerle algılar; Gazebo Sim’de de sensörlerin veri üretebilmesi için yalnızca SDF sensör tanımı yeterli değildir. Sensör verilerinin simülasyonda işlenmesi için mutlaka **sensör sistem plugin’lerinin** de etkin olması gerekir.
+
+Bu nedenle Gazebo’nun sensör mimarisi iki bileşen üzerinden çalışır:
+
+#### **1) Sensör Donanımı (SDF `<sensor>` Tanımı)**
+
+Bu tanım, sensörün fiziksel ve teknik özelliklerini belirler:
+
+* Kamera çözünürlüğü
+* LIDAR ışın sayısı
+* IMU güncelleme hızı
+
+Donanımın geometrik ve konfigürasyonel tarafıdır.
+**Tek başına veri üretmez.**
+
+#### **2) Sensör Sistem Plugin’i (World Seviyesinde)**
+
+Sensörlerin çalışabilmesi için gerekli yürütücü altyapıdır. Görevleri:
+
+* Sensörlerin güncelleme zamanlamasını yönetmek
+* Kamera render sürecini işlemek
+* LIDAR raytracing hesaplarını yürütmek
+* Sensörlerin veri üretimini başlatmak
+
+Bu plugin **dünya dosyasına eklenmediyse hiçbir sensör çalışmaz.**
+
+---
+
+### 4.3.1 Gazebo’daki Sensör Sistemleri
+
+Gazebo Sim iki tip sensör sistemine sahiptir.
+
+#### **A) Genel Sensör Sistemi — `gz-sim-sensors-system`**
+
+Bu sistem, tüm temel sensörlerin çalışmasını sağlayan çekirdek bileşendir.
+
+```xml
+<!-- Genel sensör sistemi: Tüm sensörlerin temel çalışma altyapısını sağlar -->
+<plugin filename="gz-sim-sensors-system"
+        name="gz::sim::systems::Sensors">
+
+  <!-- Kamera ve GPU lidar gibi sensörler için render motoru.
+       Ogre2 çoğu modern simülasyon için önerilir. -->
+  <render_engine>ogre2</render_engine>
+</plugin>
+```
+
+Bu sistem:
+
+* Kamera görüntüsünü üretir
+* GPU LIDAR hesaplamalarını yürütür
+* Depth kamera, sonar vb. sensörleri işletir
+
+Her dünya dosyasında **en az bir adet bulunması zorunludur**.
+
+#### **B) Sensöre Özel Sistem Plugin’leri**
+
+Bazı sensörlerin fizik tabanlı hesaplamaları daha karmaşıktır.
+Bu sensörler için genel sisteme ek olarak **özel bir plugin** gerekir.
+
+Örnekler:
+
+* **IMU** için: `gz-sim-imu-system`
+* **Altimeter** için: `gz-sim-altimeter-system`
+* **Air Pressure** için: `gz-sim-air_pressure-system`
+
+Kamera, LIDAR ve sonar gibi sensörler ise genel sistem içinde tamamen implemente edildikleri için ek plugin gerektirmezler.
+
+---
+
+### 4.3.2 Yaygın Sensörler Kullanım Örnekleri
+
+Aşağıda, sık kullanılan sensörlerin neden özel plugin gerektirdiği veya gerekmediği anlaşılır şekilde açıklanmıştır.
+
+#### **LIDAR (gpu_lidar / ray)**
+
+LIDAR, çevreyi ışın göndererek algılar. Gazebo Sim’de LIDAR’ın tüm ışın izleme (raytracing) hesaplamaları doğrudan **genel sensör sistemi tarafından** yürütülür.
+Bu nedenle LIDAR için ek bir sistem plugin’i gerekmez.
+
+Yapılması gereken tek şey:
+
+* Dünya dosyasına **genel sensör sistemini** eklemek
+* Modele `<sensor type="gpu_lidar">` tanımı eklemek
+
+```xml
+<sensor name="gpu_lidar" type="gpu_lidar">
+  <!-- Sensörün modele göre konumu -->
+  <pose>0 0 0 0 0 0</pose>
+
+  <!-- Yayınlanacak ROS/Gazebo topic adı -->
+  <topic>lidar/scan</topic>
+
+  <!-- Saniyede 10 kez ölçüm üret -->
+  <update_rate>10</update_rate>
+
+  <!-- GPU tabanlı ray sensor yapılandırması -->
+  <ray>
+    <scan>
+      <horizontal>
+        <!-- Kaç adet ışın gönderileceği -->
+        <samples>640</samples>
+
+        <!-- Işın çözünürlüğü (1 = birebir, 2 = her 2 ışında 1 hesaplama) -->
+        <resolution>1</resolution>
+
+        <!-- Taramanın sol sınırı -->
+        <min_angle>-1.57</min_angle>
+
+        <!-- Taramanın sağ sınırı -->
+        <max_angle>1.57</max_angle>
+      </horizontal>
+    </scan>
+
+    <!-- Mesafe ölçüm parametreleri -->
+    <range>
+      <!-- Sensörün minimum algılama mesafesi -->
+      <min>0.08</min>
+
+      <!-- Maksimum algılama mesafesi -->
+      <max>15.0</max>
+
+      <!-- Mesafe çözünürlüğü -->
+      <resolution>0.01</resolution>
+    </range>
+  </ray>
+
+  <!-- Veriyi kaydedilebilir hâle getirmek için -->
+  <always_on>true</always_on>
+
+  <!-- Gazebo GUI’de lazer tarama çizgilerini göster -->
+  <visualize>true</visualize>
+</sensor>
+```
+
+**Özet:**
+LIDAR → *yalnızca genel sensör sistemiyle çalışır; ek plugin istemez.*
+
+#### **IMU**
+
+IMU; ivme, açısal hız ve yönelim gibi fiziksel büyüklükleri hesaplar. Bu hesaplamalar fizik motorundan daha derin veri gerektirdiği için Gazebo Sim bunun için ayrı bir yürütücü sağlar.
+
+Bu nedenle IMU’nun çalışması için **iki plugin gereklidir**:
+
+1. *Genel sensör sistemi*
+2. *IMU’ya özel sistem plugin’i → `gz-sim-imu-system`*
+
+World içine:
+
+```xml
+<!-- Genel sensör sistemi (Her sensör için zorunlu) -->
+<plugin filename="gz-sim-sensors-system"
+        name="gz::sim::systems::Sensors"/>
+
+<!-- IMU için gerekli fiziksel hesaplama sistemi -->
+<plugin filename="gz-sim-imu-system"
+        name="gz::sim::systems::Imu"/>
+```
+
+Model içine:
+
+```xml
+<sensor name="imu_sensor" type="imu">
+  <!-- Sensör sürekli açık kalsın -->
+  <always_on>true</always_on>
+
+  <!-- 100 Hz IMU çıktısı (gerçek robotlarla uyumlu tipik değer) -->
+  <update_rate>100</update_rate>
+
+  <!-- Yayınlanacak IMU topic adı -->
+  <topic>imu/data</topic>
+
+  <!-- Görsel temsil (GUI'de küçük bir eksen gösterir) -->
+  <visualize>true</visualize>
+
+  <!-- Gürültü modelleme (opsiyonel fakat tavsiye edilir) -->
+  <imu>
+    <angular_velocity>
+      <x>
+        <!-- IMU gyro gürültüsü -->
+        <noise type="gaussian">
+          <mean>0</mean>
+          <stddev>0.001</stddev>
+        </noise>
+      </x>
+    </angular_velocity>
+    <linear_acceleration>
+      <x>
+        <!-- IMU ivme gürültüsü -->
+        <noise type="gaussian">
+          <mean>0</mean>
+          <stddev>0.02</stddev>
+        </noise>
+      </x>
+    </linear_acceleration>
+  </imu>
+</sensor>
+```
+
+**Özet:**
+IMU → *genel sistem + IMU özel plugin’i gerektirir.*
+
+#### **Kamera (RGB, Depth, Stereo)**
+
+Kameraların görüntü üretmesi için gerekli render pipeline’ı (rastırlama, ışık hesaplamaları, GPU işlemleri) zaten tamamen **genel sensör sisteminin içinde** tanımlanmıştır.
+
+Bu nedenle hiçbir kamera türü için ek plugin gerekmez.
+
+```xml
+<sensor name="front_camera" type="camera">
+  <!-- Saniyede 30 FPS üret -->
+  <update_rate>30</update_rate>
+
+  <!-- Kameranın modele göre konumu -->
+  <pose>0.1 0 0.2 0 0 0</pose>
+
+  <!-- Görüntü yayın topic'i -->
+  <topic>camera/image_raw</topic>
+
+  <camera>
+    <!-- Kamera yatay görüş açısı (radyan cinsinden) -->
+    <horizontal_fov>1.047</horizontal_fov> <!-- ~60 derece -->
+
+    <!-- Görüntü çözünürlüğü -->
+    <image>
+      <width>1280</width>
+      <height>720</height>
+      <format>R8G8B8</format>
+    </image>
+
+    <!-- Lens ayarları (opsiyonel) -->
+    <lens>
+      <type>pinhole</type>
+    </lens>
+
+    <!-- Depth kamera ise bu bölüm eklenebilir:
+    <output>depth</output> -->
+  </camera>
+
+  <!-- Kameranın render edilmesini etkinleştir -->
+  <always_on>true</always_on>
+  <visualize>true</visualize>
+</sensor>
+```
+
+**Özet:**
+Kamera → *yalnızca genel sensör sistemi yeterlidir.*
+
+> Genel kural olarak:
+>* **Basit sensörler**
+  (kamera, LIDAR, sonar)
+  → *Sadece genel sensör sistemi yeterlidir.*
+>* **Fiziksel hesap gerektiren sensörler**
+  (IMU, altimeter, air pressure)
+  → *Genel sistem + o sensöre özel sistem plugin’i gerekir.*
 
 <br/>
 
@@ -1177,7 +1433,7 @@ Benzerlik ve farklılıklardan bahsettiğimize göre asıl iş yapacağımız k�
 
 Bir diferansiyel sürüşe sahip AMR için sistem tasarımı aşağı yukarı şu şekildedir. 
 
-TODO: *resim koy hacı*
+TODO: resim koy hacı
 
 Burada sistem iki ana parçaya ayrılmış biri üst sistem diğeri de alt sistem. Peki bu alt-üst ayrımı muhabbeti nedir? Biri kullanan diğeri de sunan taraftır. Aracın temel özelliklerini sunan kısım **alt sistem** olarak adlandırılırken bu özellikleri kullanarak projenin nihai hedeflerini yerine getiren kısım ise **üst sistem** olarak adlandırılır. Eğer insan vucüdü üzerinden bir analoji yapacak olursak alt sistem omurilik ve diğer sinirsel bağlantılara, üst sistem ise beyine karşılık gelir. Bizim yazacağımız yazılımlar ise beyinde duran düşüncelere mi yoksa kas hafızası minvalindeki işlere mi karşılık geldiğini sorgulayarak hangi tarafa ait olduğunu bulabiliriz. Mesela tahrik tekerleklerin döndürülmesi bir dc motor vasıtasyıla yapılıyor. Sanki bir elimizi kaldırmak gibi bir olay beynimiz derste olduğumuzu ve izin istemek için bir işaret vermesi gerektiğini düşünüyor. Bunun içinde omuriliğe sinyal yolluyor omurilikde başka sinyaller vasıtasıyla kasta hareket sağlayıp elimizi havaya kaldırıyor. 
 
@@ -1203,7 +1459,6 @@ Yapacağımız işler:
 
 TODO: slam_toolbox hangi parametreleri nasıl değiştirmeliyiz? anlat
 
-
 ### `nav2` Parametre Değişimi
 
 TODO: nav2 hangi parametreleri nasıl değiştirmeliyiz? anlat
@@ -1220,30 +1475,144 @@ TODO: Lidar sürücü isimlerini kontrol et
 
 ### Odometri Hesaplaması
 
-Odometriyi hesaplamak için önce diferansiyel sürüş'ün nasıl çalıştığına bakmak lazım. Diferansiyel sürüşe sahip bir araç hareket ettiğinde ya düz gidiyordur ya da eğrisel (çembersel) hareket yapıyordur. Düz hareketi hesaplamak kolay. İki teker aynı yolu katetmişse düz gitmişdir ve aracın aldığı yol ise bu iki tekerin ortalamasıdır. Aslında zaten aldığı yollar aynı ise ortalamasını almak manasız ama bir eşik değeri ile kontrol edeceğimizden aynı olmasa da düz gittiğini varsaydığımız durumlar olduğundan ortalamasını almak daha sağlıklı. Peki eğrisel hareket ediyosa. işte o zaman biraz daha fazla matematiğe ihtiyacımız var :). Lakin gözünüz kormasın. En nihayetinde lisede fizik dersinde gördüğümüz çembersel hareket. 
+Odometri, diferansiyel sürüş kullanan robotlarda konum tahmini yapmanın en temel yollarından biridir. Robot bazen dümdüz ilerler, bazen de sağa sola dönerek çembersel bir yol izler. Düz hareket kısmı oldukça basit olsa da, dönme hareketinde iş biraz matematiğe kayar. Ama merak etmeyin — burada yapacağımız şey tamamen lise fiziğinde gördüğümüz çembersel hareketin robotlara uygulanmış hâli.  
+Hadi şimdi robotun hareketten sonra nerede olduğunu birlikte hesaplayalım!
 
 Bilmek istediğimiz şeyler robotun hareketten sonraki: x,y konumu ve açısı. 
 
 Bildiğimiz şeyler ise hareketten önceki konumu ve açısı
 
-Bunlardan yola çıkarak şöyle bir ispat yapabiliriz.
+Bunlardan yola çıkarak problemimizi şöyle tanımlayabiliriz 
 
-- x0 : önceki x
-- x1 : sonraki x
-- y0 : önceki y
-- y1 : sonraki y
-- a0 : önceki açı
-- a1 : sonraki açı
+#### **1. Tanımlar**
 
-TODO: matematiksel gösterim ile denklemleri çıkar ve buraya ispat görselini ekle
+- **\( d_\ell \)**: Sol tekerin aldığı yol  
+- **\( d_r \)**: Sağ tekerin aldığı yol  
+- **\( L \)**: İki teker arası mesafe  
+- **\( x_0, y_0 \)**: Başlangıç konumu  
+- **\( \theta_0 \)**: Başlangıç yön açısı  
+- **\( x_1, y_1 \)**: Hareket sonrası konum  
+- **\( \theta_1 \)**: Hareket sonrası yön açısı  
 
-Böylelikle şu formülleri elde etmiş olduk.
+#### **2. Problem Tanımı**
 
-TODO: nihai elde edilen denklemleri matematiksel gösterim ile yaz
+Bir diferansiyel sürüş robotunda:
 
-Artık ROS2 mesajı olarak aldığımız metrikleri kullanarak odometri hesaplaması yapabiliyoruz.
+- **\( d_\ell, d_r, L, x_0, y_0, \theta_0 \)** biliniyor olsun,  
+- Robot düz gitmiyor olsun (yani **\( d_\ell \neq d_r \)**).
 
-TODO: Acaba buraya odometri hesaplayıcı ve tf broadcaster kodu eklesem mi?  
+Bu durumda robotun yeni konumu olan **\( x_1, y_1, \theta_1 \)** değerleri nasıl hesaplanır?
+
+#### **3. Çembersel Hareket Varsayımı**
+
+Diferansiyel sürüşlü bir robot dönerken aslında bir çember yayı üzerinde hareket eder. Bu durumda:
+
+- Taradığı açı: **\( \alpha \)**  
+- Dönüş yarıçapı: **\( r \)**
+- Robot merkezinin aldığı yol: **\( d_m \)**
+
+olarak tanımlayalım.
+
+#### **3.1. Çember Merkezine Göre Yeni Konum**
+
+\[
+ x_1' = r \cos(\theta_0 + \alpha)
+\]\[
+ y_1' = r \sin(\theta_0 + \alpha)
+\]
+
+Mutlak konuma geçiş:
+
+\[
+ x_1 = x_0 + \Delta x
+\]\[
+ y_1 = y_0 + \Delta y
+\]
+
+#### **4. Başlangıç Konumunun Çember Merkezine Göre İfadesi**
+
+\[
+ x_0' = r \cos(\theta_0)
+\]\[
+ y_0' = r \sin(\theta_0)
+\]
+
+Dolayısıyla:
+
+\[
+ \Delta x = r[\cos(\theta_0 + \alpha) - \cos(\theta_0)]
+\]\[
+ \Delta y = r[\sin(\theta_0 + \alpha) - \sin(\theta_0)]
+\]
+
+#### **5. \(d_m\), \(r\) ve \(\alpha\) Arasındaki Bağıntılar**
+
+Merkezin aldığı yol:
+
+\[
+ d_m = \frac{d_\ell + d_r}{2}
+\]
+
+Yay uzunluğu:
+
+\[
+ d_m = r \alpha
+\]
+
+Tekerlerin yay uzunlukları:
+
+\[
+ \frac{d_\ell}{r - \tfrac{L}{2}} = \frac{d_r}{r + \tfrac{L}{2}}
+\]
+
+---
+
+## **6. Yarıçap r'nin Bulunması**
+
+\[
+ r = \frac{(d_\ell + d_r)\tfrac{L}{2}}{d_r - d_\ell}
+\]
+
+---
+
+## **7. Açı α'nın Bulunması**
+
+\[
+ r = \frac{d_\ell + d_r}{2\alpha}
+\]
+
+Eşitlenirse:
+
+\[
+ \alpha = \frac{d_r - d_\ell}{L}
+\]
+
+---
+
+# ✔️ **8. Sonuç: Hareket Sonrası Pozisyon**
+
+Robotun yeni pozisyonu:
+
+### **Konum Güncellemesi**
+
+\[
+ x_1 = x_0 + r(\cos(\theta_0 + \alpha) - \cos(\theta_0))
+\]
+
+\[
+ y_1 = y_0 + r(\sin(\theta_0 + \alpha) - \sin(\theta_0))
+\]
+
+### **Açı Güncellemesi**
+
+\[
+ \theta_1 = \theta_0 + \alpha
+\]
+
+---
+
+Hazırsanız bu denklem setiyle robotunuzun odometrisini kolayca hesaplayabilirsiniz! 😊
+
 
 <br/>
 
