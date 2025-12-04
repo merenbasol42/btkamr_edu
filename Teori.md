@@ -1473,6 +1473,8 @@ TODO: rplidar ve sllidar için github linkleri bırak zaten onların README'sind
 
 TODO: Lidar sürücü isimlerini kontrol et
 
+---
+
 ### Odometri Hesaplaması
 
 Odometri, diferansiyel sürüş kullanan robotlarda konum tahmini yapmanın en temel yollarından biridir. Robot bazen dümdüz ilerler, bazen de sağa sola dönerek çembersel bir yol izler. Düz hareket kısmı oldukça basit olsa da, dönme hareketinde iş biraz matematiğe kayar. Ama merak etmeyin — burada yapacağımız şey tamamen lise fiziğinde gördüğümüz çembersel hareketin robotlara uygulanmış hâli.  
@@ -1484,135 +1486,283 @@ Bildiğimiz şeyler ise hareketten önceki konumu ve açısı
 
 Bunlardan yola çıkarak problemimizi şöyle tanımlayabiliriz 
 
-#### **1. Tanımlar**
+#### Düz Hareket Problemi:
 
-- $d_\ell$: Sol tekerin aldığı yol  
-- **\( d_r \)**: Sağ tekerin aldığı yol  
-- **\( L \)**: İki teker arası mesafe  
-- **\( x_0, y_0 \)**: Başlangıç konumu  
-- **\( \theta_0 \)**: Başlangıç yön açısı  
-- **\( x_1, y_1 \)**: Hareket sonrası konum  
-- **\( \theta_1 \)**: Hareket sonrası yön açısı  
+* **$d_l$**: Sol tekerin aldığı yol
+* **$d_r$**: Sağ tekerin aldığı yol
+* **$L$**: İki teker arası mesafe
+* **$x_0, y_0$**: Başlangıç konumu
+* **$\theta_0$**: Başlangıç yön açısı
+* **$x_1, y_1$**: Hareket sonrası konum
+* **$\theta_1$**: Hareket sonrası yön açısı
 
-#### **2. Problem Tanımı**
+olmak üzere;
 
-Bir diferansiyel sürüş robotunda:
+Bir diferansiyel sürüş kinematiğine sahip araç için:
 
-- **\( d_\ell, d_r, L, x_0, y_0, \theta_0 \)** biliniyor olsun,  
-- Robot düz gitmiyor olsun (yani **\( d_\ell \neq d_r \)**).
+* **$d_l, d_r, L, x_0, y_0, \theta_0$** değerleri biliniyor,
+* Robot düz gidiyor **($d_l \approx d_r$)**.
 
-Bu durumda robotun yeni konumu olan **\( x_1, y_1, \theta_1 \)** değerleri nasıl hesaplanır?
+Bu durumda hareket ettiğinde **$x_1, y_1, \theta_1$ = ?**
 
-#### **3. Çembersel Hareket Varsayımı**
 
-Diferansiyel sürüşlü bir robot dönerken aslında bir çember yayı üzerinde hareket eder. Bu durumda:
+#### Çözüm:
 
-- Taradığı açı: **\( \alpha \)**  
-- Dönüş yarıçapı: **\( r \)**
-- Robot merkezinin aldığı yol: **\( d_m \)**
+Aracımızın hareketini şu şekilde gibi özetleyebiliriz.
 
-olarak tanımlayalım.
+TODO: Şekil koy düz giden araç
 
-#### **3.1. Çember Merkezine Göre Yeni Konum**
+Hareket yaklaşık olduğundan dolayı ortalama almak iyidir.
 
-\[
- x_1' = r \cos(\theta_0 + \alpha)
-\]\[
- y_1' = r \sin(\theta_0 + \alpha)
-\]
+$$
+\text{aracın gittiği yol}= \frac{d_l + d_r}{2}
+$$
 
-Mutlak konuma geçiş:
+Şekil 3'ü bu şekilde yorumlarsak
 
-\[
- x_1 = x_0 + \Delta x
-\]\[
- y_1 = y_0 + \Delta y
-\]
+$$
+x_1 = x_0 + \cos(\theta).\frac{(d_l + d_r)}{2}
+$$
 
-#### **4. Başlangıç Konumunun Çember Merkezine Göre İfadesi**
+$$
+y_1 = y_0 + \sin(\theta).\frac{(d_l + d_r)}{2}
+$$
 
-\[
- x_0' = r \cos(\theta_0)
-\]\[
- y_0' = r \sin(\theta_0)
-\]
+#### Eğik Hareket Problemi:
+
+* **$d_l$**: Sol tekerin aldığı yol
+* **$d_r$**: Sağ tekerin aldığı yol
+* **$L$**: İki teker arası mesafe
+* **$x_0, y_0$**: Başlangıç konumu
+* **$\theta_0$**: Başlangıç yön açısı
+* **$x_1, y_1$**: Hareket sonrası konum
+* **$\theta_1$**: Hareket sonrası yön açısı
+
+olmak üzere;
+
+Bir diferansiyel sürüş kinematiğine sahip araç için:
+
+* **$d_l, d_r, L, x_0, y_0, \theta_0$** değerleri biliniyor,
+* Robot düz gitmiyor **($d_l \neq d_r$)**.
+
+Bu durumda hareket ettiğinde **$x_1, y_1, \theta_1$ = ?**
+
+#### Çözüm
+
+Araç en nihayetinde bir çembersel hareket yapacaktır.
+Öyle ise kolaylık için:
+
+* Taradığı açı: **$\alpha$**
+* Dönüş yarıçapı: **$r$**
+* Robot merkezinin aldığı yol: **$d_m$**
+
+tanımlamalarını yapalım.
+
+Aracın izlediği yolu çizelim.
+
+TODO: Şekil 1'i ekle
+
+Çember merkezi referans alan; $x$ değerine **$x'$**, $y$ değerine **$y'$** diyelim.
+
+O vakit şekilde görüldüğü üzere:
+
+$$
+x_1' = r\cos(\theta_0 + \alpha)
+$$
+
+$$
+y_1' = r\sin(\theta_0 + \alpha)
+$$
+
+denklemlerini elde etmiş oluruz.
+
+Ama bu denklemler bize gerçek $x_1$ ve $y_1$' i vermez bize onlar lazım.
+Ancak 
+
+$$
+x_1 = x_0 + \Delta x
+$$
+
+$$
+y_1 = y_0 + \Delta y
+$$
+
+olduğundan eğer bu referanslı değerlerden $\Delta x$ ve $\Delta y$ bulursak amacımıza ulaşmış oluruz.
+
+Bu sefer aynı şeklin farklı bir yerine odaklanalım
+
+TODO: Şekil2'yi koy buraya
+
+Şekile baktığımızda başlangıç konumlarının referans karşılıklarını da elde ediyoruz.
+
+$$
+x_0' = r\cos(\theta_0)
+$$
+
+$$
+y_0' = r\sin(\theta_0)
+$$
 
 Dolayısıyla:
 
-\[
- \Delta x = r[\cos(\theta_0 + \alpha) - \cos(\theta_0)]
-\]\[
- \Delta y = r[\sin(\theta_0 + \alpha) - \sin(\theta_0)]
-\]
+$$
+\Delta x = r[\cos(\theta_0 + \alpha) - \cos(\theta_0)]
+$$
 
-#### **5. \(d_m\), \(r\) ve \(\alpha\) Arasındaki Bağıntılar**
+$$
+\Delta y = r[\sin(\theta_0 + \alpha) - \sin(\theta_0)]
+$$
 
-Merkezin aldığı yol:
+olarak değişimleri buluyoruz.
 
-\[
- d_m = \frac{d_\ell + d_r}{2}
-\]
+Ancak $\alpha$ ve $r$ bizim çözüm sürecinde tanımladığımız değişkenler. Onların da problem tanımında yer alan değişkenlerce karşılığını bulmalıyız.
 
-Yay uzunluğu:
+Şimdi tanımladığımız bu değişkenlerin birbirleri ile olan ilişkisine göz atalım
 
-\[
- d_m = r \alpha
-\]
+TODO: Buraya Şekil3'ü koy
+
+Bir çember kesiti için;
+
+$$
+\text{açı} = \frac{\text{çember kesiti}}{\text{yarıçap}}
+$$ 
+
+bu eşitlik sağlanır.
+
+
+Ayrıca merkezin aldığı yol için;
+
+$$
+d_m = \frac{d_l + d_r}{2}
+$$
+
+bu eşit sağlanır
+
+İspatı:
+
+TODO: buraya merkezin aldığı yol denklemi için şekil koy ve ispatını yap
+
+
+Öyleyse bunları kullanarak şekil3'ü yorumlayalım
+
 
 Tekerlerin yay uzunlukları:
 
-\[
- \frac{d_\ell}{r - \tfrac{L}{2}} = \frac{d_r}{r + \tfrac{L}{2}}
-\]
+$$
+\alpha = \frac{d_l}{r - \tfrac{L}{2}} = \frac{d_m}{r} = \frac{d_r}{r + \tfrac{L}{2}}
+$$
+
+Burada $r$' yi bulmak için iki ifadeyi eşitliğe yazalım ve işlemlere başlayalım
+
+$$
+\frac{d_l}{r - \frac{L}{2}} = \frac{d_r}{r + \frac{L}{2}} 
+$$
+
+$$
+d_l.r + d_l.\frac{L}{2} = d_r.r - d_r.\frac{L}{2}
+$$
+
+$$
+d_l.r + d_r.r =  - d_r.\frac{L}{2} - d_l.\frac{L}{2}
+$$
+
+$$
+r.(d_l - d_r) = -\frac{L}{2}.(d_l + d_r)
+$$
+
+$$
+r.(d_r - d_l) = \frac{L}{2}.(d_l + d_r)
+$$
+
+$$
+r = \frac{L}{2}.\frac{(d_l + d_r)}{(d_r - d_l)}
+$$
+
+Evet artık $r$ 'nin karşılığını bulmuş olduk. 
+
+Şimdi sıra da $\alpha$ var.
+
+Çember kesiti denkleminden:
+
+$$
+r = \frac{d_l + d_r}{2.\alpha}
+$$
+
+elde edebiliriz.
+
+Bunu da $r$ için bulduğumuz diğer karşılıkla eşitlersek:
+
+$$
+r = \frac{d_l + d_r}{2.\alpha} = \frac{L}{2}.\frac{(d_l + d_r)}{(d_r - d_l)}
+$$
+
+$$
+\frac{1}{\alpha} = \frac{L}{d_r - d_l}
+$$
+
+
+$$
+\alpha = \frac{d_r - d_l}{L}
+$$
+
+Böylece $\alpha$ 'nın karşılığını da bulmuş olduk.
+
+Son olarak $\alpha$ için hareketteki açı değişimi demiştik. $\theta$ 'yı da belirtelim ve çözümü bitirelim
+
+$$
+\theta_1 = \theta_0 + \alpha
+$$
+
+#### Sonuç: 
+##### Konum Güncellemesi
+
+Eğik harekette:
+
+$$
+x_1 = x_0 + r(\cos(\theta_0 + \alpha) - \cos(\theta_0))
+$$
+
+$$
+y_1 = y_0 + r(\sin(\theta_0 + \alpha) - \sin(\theta_0))
+$$
+
+Düz harekette:
+
+$$
+x_1 = x_0 + \cos(\theta).(d_l + d_r) 
+$$
+
+$$
+y_1 = y_0 + \sin(\theta).(d_l + d_r) 
+$$
+
+##### Açı Güncellemesi
+
+Eğik harekette:
+
+$$
+\theta_1 = \theta_0 + \alpha
+$$
+
+Düz harekette:
+
+$$
+\theta_1 = \theta_0
+$$
+
+##### Yardımcı Değişkenler
+
+$$
+r = \frac{L}{2}.\frac{(d_l + d_r)}{(d_r - d_l)}
+$$
+
+$$
+\alpha = \frac{d_r - d_l}{L}
+$$
+
+Artık bu denklem setiyle robotunuzun odometrisini hesaplayabilirsiniz.
 
 ---
-
-## **6. Yarıçap r'nin Bulunması**
-
-\[
- r = \frac{(d_\ell + d_r)\tfrac{L}{2}}{d_r - d_\ell}
-\]
-
----
-
-## **7. Açı α'nın Bulunması**
-
-\[
- r = \frac{d_\ell + d_r}{2\alpha}
-\]
-
-Eşitlenirse:
-
-\[
- \alpha = \frac{d_r - d_\ell}{L}
-\]
-
----
-
-# ✔️ **8. Sonuç: Hareket Sonrası Pozisyon**
-
-Robotun yeni pozisyonu:
-
-### **Konum Güncellemesi**
-
-\[
- x_1 = x_0 + r(\cos(\theta_0 + \alpha) - \cos(\theta_0))
-\]
-
-\[
- y_1 = y_0 + r(\sin(\theta_0 + \alpha) - \sin(\theta_0))
-\]
-
-### **Açı Güncellemesi**
-
-\[
- \theta_1 = \theta_0 + \alpha
-\]
-
----
-
-Hazırsanız bu denklem setiyle robotunuzun odometrisini kolayca hesaplayabilirsiniz! 😊
-
 
 <br/>
 
