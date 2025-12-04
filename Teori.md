@@ -98,19 +98,17 @@ Transform, iki frame arasındaki göreli konum ve yönelim farkını ifade eder.
 
 Transformların sürekli güncellenmesi sayesinde robot; sensörlerden gelen tüm bilgileri kendi konum ve yönelimine göre anlamlandırabilir.
 
-<h2 id="hid-2-2">2.2. Transform (Frame'ler Arasındaki İlişki)</h2>
-
 Her frame tek başına anlam taşımaz; anlamı diğer frame’lerle olan ilişkisi belirler.
 
 TODO: Aşağıdaki ifadeye uygun bir görsel
 
 Örnek:
 
-```math
+$$
 B = A + T
-```
+$$
 
-Burada **T**, A → B dönüşümünü ifade eder. Yani B’nin konumu, A frame’i baz alınarak hesaplanır.
+Burada **$T$**, $A → B$ dönüşümünü ifade eder. Yani B’nin konumu, A frame’i baz alınarak hesaplanır.
 
 Transformlar sayesinde:
 
@@ -137,9 +135,9 @@ TODO: aşşadaki ifadeye uyfun bir görsel
 
 Örnek hesaplama:
 
-```math
+$$
 T_{\text{robot→A}} = T_{\text{map→A}} - T_{\text{map→robot}}
-```
+$$
 
 Bu yöntem, gerçek zamanlı ve tutarlı konumlama için temel altyapıyı sağlar.  
 
@@ -303,7 +301,7 @@ Aşağıda her joint türü ayrıntılı açıklanmıştır:
 
 ---
 
-<h3 id="fixed-joint">1. Fixed Joint</h3>
+### 1. Fixed Joint
 
 Hiçbir şekilde hareket etmeyen, tamamen sabit eklemdir.
 
@@ -327,7 +325,7 @@ TODO: Her tür için bi tane GIF mi koysak
 
 ---
 
-<h3 id="revolute-joint">2. Revolute Joint</h3>
+### 2. Revolute Joint
 
 Belirli bir eksende sınırlı dönüş yapabilen eklemdir.
 
@@ -361,7 +359,7 @@ Belirli bir eksende sınırlı dönüş yapabilen eklemdir.
 
 ---
 
-<h3 id="continuous-joint">3. Continuous Joint</h3>
+### 3. Continuous Joint 
 
 Bir eksende sınırsız dönebilen eklemdir. Tekerlek gibi sürekli dönen parçalarda kullanılır.
 
@@ -388,7 +386,7 @@ Bir eksende sınırsız dönebilen eklemdir. Tekerlek gibi sürekli dönen parç
 
 ---
 
-<h3 id="prismatic-joint">4. Prismatic Joint</h3>
+### 4. Prismatic Joint
 
 Tek eksende doğrusal (lineer) hareket eden eklemdir.
 
@@ -455,14 +453,12 @@ Bu etiket robotun ROS içerisindeki adını belirler ve URDF dosyasındaki büt�
 
 <br/>
 
-<h2 id="hid-3-5">3.5 URDF -> ROS2 Bağlantısı</h2>
+<h2 id="hid-3-5">3.5. URDF -> ROS2 Bağlantısı</h2>
 
 URDF dosyasının tek başına var olması, robotun ROS2 sistemi tarafından kullanılmasını sağlamaz. Bir URDF modelinin ROS2 grafik yapısında (node–topic–tf yapısında) görünür ve erişilebilir olmasını sağlayan temel mekanizma `robot_state_publisher` düğümüdür.
 
 Bu alt bölümde URDF’in ROS2’ye nasıl “tanıtıldığını” ve hareketli eklemlerin nasıl güncellendiğini teorik düzeyde inceleyeceğiz.
-
----
-
+ 
 ### `robot_state_publisher` Nedir?
 
 `robot_state_publisher`, URDF tabanlı robot tanımını ROS2 ekosistemine dahil eden **merkezi düğümdür**. URDF'in ROS2 tarafında anlamlı bir hale gelmesi, TF (transform) ağacının oluşması ve linkler arasındaki dönüşümlerin yayınlanması bu düğüm üzerinden gerçekleşir.
@@ -544,7 +540,7 @@ Eğitim ve simülasyon senaryolarında ise `joint_state_publisher` ve `joint_sta
 
 <br/>
 
-<h2 id="hid-3-6">Modelleme Örneği</h2>
+<h2 id="hid-3-6">3.6. Modelleme Örneği</h2>
 
 Aşağıda, ROS2 ekosistemine entegre edilebilecek basit bir URDF tanımı örneği sunulmuştur. Bu örnek, iki adet link ve bunları birbirine bağlayan tek bir dönel (revolute) eklem içeren minimal bir robot modelinin nasıl tanımlanacağını göstermektedir. Örnek, görsel temsil ve kinematik yapı arasındaki ilişkinin açık biçimde anlaşılabilmesi amacıyla sade tutulmuştur.
 
