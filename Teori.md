@@ -56,7 +56,7 @@ Bu dokümanın temel hedefleri:
 * AMR geliştirirken ihtiyaç duyulan temel teorik kavramları aktarmak,
 * ROS2 ekosisteminin AMR’lerle ilişkili bileşenlerini ayrıntılı biçimde tanıtmak,
 * Uygulamaya yönelik, düzenli ve tek kaynaktan takip edilebilir bir referans sunmak,
-* Simülasyonda bir AMR'yi tasarlmak ve test etmek,
+* Simülasyonda bir AMR'yi tasarlamak ve test etmek,
 * Gerçek robot üzerinde kullanılabilecek sağlam bir bilgi temeli oluşturmaktır.
 
 Bu kapsamda, okuyucu kitap ilerledikçe hem kavramsal hem pratik açıdan bir AMR sisteminin nasıl geliştirileceğini öğrenmiş olacaktır.
@@ -1411,15 +1411,15 @@ Kamera → *yalnızca genel sensör sistemi yeterlidir.*
 <br/>
 <br/>
 
-<h1 id="hid-7">Simülasyon vs Gerçeklik</h1>
+<h1 id="hid-7">7. Simülasyon vs Gerçeklik</h1>
 
-Simülasyon, gerçekliğin taklididir. Gerçeklikle benzeştiği kadar kıymetlidir. Peki gerçek dururken neden simülasyon? Gerçeklik hem mali hem de emek açısıdan zahmetlidir. Ayrıca gerçeklik işin içine girdiğinde illaki hesaplanamayan hatalar ve projeye özgü durumlar oluşur. Bu yüzden simülasyonda çalışmak elzemdir.  
+Simülasyon, gerçekliğin bir taklididir ve gerçeklikle ne kadar benzeşiyorsa o kadar değerlidir. Peki, gerçek dururken neden simülasyon kullanıyoruz? Çünkü gerçeklik hem maliyet hem de emek açısından oldukça zahmetlidir. Üstelik gerçek donanım devreye girdiğinde, hesaplanması güç hatalar ve projeye özgü beklenmedik durumlar kaçınılmaz hâle gelir. Bu nedenle önce simülasyon ortamında çalışmak büyük önem taşır.
 
-Peki şuana kadar diferansiyel sürüşe sahip bir otonom robotu simülasyonda nasıl oluşturacağımızı öğrendik gelelim işin gerçeklik kısmına
+Buraya kadar diferansiyel sürüşe sahip bir otonom robotu simülasyonda nasıl oluşturacağımızı öğrendik. Şimdi ise işin gerçek kısmına geçelim.
 
 <br/>
 
-<h2 id="hid-7-1">Benzerlikler ve Farklılıklar</h2>
+<h2 id="hid-7-1">7.1. Benzerlikler ve Farklılıklar</h2>
 
 ROS2 ile bu zamana kadar işlediğimiz AMR aslında gerçekte de çok farklı çalışmıyor. Zaten bunun için simülasyon kıymetli. Üst sistem için hiç bir kod değişmiyor mesela. Yine aynı mesajları aynı şekilde göndereceğiz, aynı robot modelini kullanacağız.  
 
@@ -1429,53 +1429,208 @@ Benzerlik ve farklılıklardan bahsettiğimize göre asıl iş yapacağımız k�
 
 <br/>
 
-<h2 id="hid-7-2">Temel Sistem Tasarımı</h2>  
+<h2 id="hid-7-2">7.2. Temel Sistem Tasarımı</h2>  
 
-Bir diferansiyel sürüşe sahip AMR için sistem tasarımı aşağı yukarı şu şekildedir. 
+Diferansiyel tahrikli bir AMR’ın genel mimarisi iki ana katmana ayrılır: **üst sistem** ve **alt sistem**. Bu ayrım, robotun nasıl çalıştığını hem yazılımsal hem de işlevsel olarak anlamayı kolaylaştırır.
 
-TODO: resim koy hacı
+TODO: Buraya Sistem Tasarım Şemasını koy
 
-Burada sistem iki ana parçaya ayrılmış biri üst sistem diğeri de alt sistem. Peki bu alt-üst ayrımı muhabbeti nedir? Biri kullanan diğeri de sunan taraftır. Aracın temel özelliklerini sunan kısım **alt sistem** olarak adlandırılırken bu özellikleri kullanarak projenin nihai hedeflerini yerine getiren kısım ise **üst sistem** olarak adlandırılır. Eğer insan vucüdü üzerinden bir analoji yapacak olursak alt sistem omurilik ve diğer sinirsel bağlantılara, üst sistem ise beyine karşılık gelir. Bizim yazacağımız yazılımlar ise beyinde duran düşüncelere mi yoksa kas hafızası minvalindeki işlere mi karşılık geldiğini sorgulayarak hangi tarafa ait olduğunu bulabiliriz. Mesela tahrik tekerleklerin döndürülmesi bir dc motor vasıtasyıla yapılıyor. Sanki bir elimizi kaldırmak gibi bir olay beynimiz derste olduğumuzu ve izin istemek için bir işaret vermesi gerektiğini düşünüyor. Bunun içinde omuriliğe sinyal yolluyor omurilikde başka sinyaller vasıtasıyla kasta hareket sağlayıp elimizi havaya kaldırıyor. 
+#### **Üst Sistem Görev Kapsamı**
 
-Evet alt sistem üst sistem farkını anladığımıza göre artık üst sistem de neler varmış onu inceleyelim.
+Üst sistem, robotun "beyni" gibidir. Karar verme, planlama, haritalama ve yön bulma gibi yüksek seviyeli görevleri gerçekleştirir. Bu eğitimde üst sistemde aşağıdaki görevler bulunur:
 
-Zaten `slam_toolbox` ve `nav2`'yi kullanmıştık birkaç parametre değişikliği ile aynı şekilde kullanacağız. Odometri içinse biraz değişik olacak çünkü alt sistemden bize gelen mesajın içeriğinde doğrudan odometri yerine sol ve sağ tekerin ne kadar gittiğini bildiriyor sadece burada bir odometri hen hesaplaması yaparak **odometry** ve **transform** yayınlamasını kendimiz yapmalıyız. Ayrıca **LiDAR** cihazımızdan verileri alıp `LaserScan` türünde yayımlamak lazım. Bunun haricinde üst sistemde yapmadığımız herhangi bir şey yok.  
+1. **SLAM (slam_toolbox)**
+  Harita oluşturma ve konum tahmini işlemlerini gerçekleştirir.
 
-Alt sistemde ise tek yapacağımız şey bir **diferansiyel sürücü** yazmak olucak. Bu sürücü verilen hız emrini olabildiğince doğru bir şekilde uygulamak ile yükümlü. En nihayetinde akış: Hız mesajı -> PWM hesaplaması -> GPIO'ya PWM yazımı -> Motora uygulanan elektrik. Ama bunun çoğu koşulda güvenilir çalışması için bir kontrol algoritması da uygulamak gerekir. Ayrıca bu hız mesajının ulaşması için de bir modül gerekiyor. ROS2 mesajlarının mikrodenetleyicimize ulaşması için burada `micro-ros` devreye giriyor. Bu kütüphane sayesinde Seri hat, Wi-Fi, Bluetooth gibi hatlardan ROS2 mesajlarını aktarabiliyoruz.
+2. **Navigasyon (nav2)**
+  Hedefe gitme, yol planlama, engellerden kaçınma gibi davranışları yönetir.
 
-Artık neler yapacağımızı anladığımıza göre nasıl yaparız ona geçelim.  
+3. **Odometri Hesaplama**
+  Alt sistemden gelen sol ve sağ tekerlek ilerleme verilerini kullanarak robotun pozisyonunu hesaplar. Ardından odometri mesajını ve gerekli transformları yayınlar.
+
+4. **LiDAR Verisinin Yayınlanması**
+  LiDAR’dan gelen ham ölçümleri `LaserScan` formatında ROS2 ağına sunar.
+
+Üst sistem yalnızca bu görevleri yürütür; doğrudan motor kontrolü veya düşük seviye donanım yönetimi yapmaz.
+
+
+#### **Alt Sistem Görev Kapsamı**
+
+Alt sistem, robotun "kasları" ve "refleksleri" gibidir. Fiziksel hareket, ölçüm toplama ve temel donanım işlevlerinden sorumludur.
+
+1. **Diferansiyel Sürüşün Gerçekleştirilmesi**
+   Üst sistemden gelen çizgisel ve açısal hız komutlarını alır, bunları sol ve sağ tekerlek hızlarına dönüştürür ve motorların çalışmasını sağlar.
+
+2. **Haberleşme (micro-ROS)**
+   Üst sistemden gelen komutların mikrodenetleyiciye ulaşmasını ve alt sistemde oluşturulan ölçümlerin üst sisteme aktarılmasını sağlar.
+
+3. **Tekerlek Ölçüm Verilerinin Gönderimi**
+   Bu projede alt sistemin topladığı tek ölçüm: sol ve sağ tekerleklerin ne kadar ilerlediği (metre cinsinden). Bu veri üst sisteme gönderilir ve odometri hesaplamasında kullanılır.
 
 <br/>
 
-<h2 id="hid-7-3"> Üst Sistem Nasıl gerçekleştirilir? </h2>
+<h2 id="hid-7-3"> 7.3. Üst Sistem Nasıl Gerçekleştirilir? </h2>
 
-Yapacağımız işler:
-- slam_toolbox parametre değişimi
-- nav2 parametre değişimi
-- LiDAR için ROS2 sürücüsü
-- Tekerlek dönüşlerinden odometri hesaplama
+Bir mobil robotun üst sistemi; algılama, haritalama, konumlama, planlama ve hareket kontrolü bileşenlerinin bir arada ve uyumlu şekilde çalışmasını gerektiren bütünsel bir yapıdır. Simülasyonda doğru işleyen bir sistem, gerçek dünyaya taşındığında sensör gürültüsü, fiziksel belirsizlikler ve robotun mekanik sınırlamaları nedeniyle aynı performansı göstermeyebilir. Bu nedenle üst sistem kurulurken hem yazılım bileşenlerinin doğru yapılandırılması hem de gerçek robot verilerine göre titizlikle ayarlanması gerekir.
 
-### `slam_toolbox` Parametre Değişimi
+Bu bölümde, simülasyon ortamından gerçek robota geçişte üst sistemin nasıl ele alınması gerektiği, hangi parametrelerin kritik olduğu ve sistemin kararlı çalışması için hangi adımların izlenmesi gerektiği özetlenecektir. Böylece hem SLAM hem de navigasyon tarafında sağlam ve güvenilir bir mimarinin temelleri açıklanacak, sonraki alt başlıklar için gerekli çerçeve oluşturulacaktır.
 
-TODO: slam_toolbox hangi parametreleri nasıl değiştirmeliyiz? anlat
+Temelde yapılacak 2 iş vardır: [parametre ayarlamaları](#hid-7-3-1) ve [odometri hesaplaması](#hid-7-3-2)
 
-### `nav2` Parametre Değişimi
+<h3 id="hid-7-3-1">7.3.1 Gerçek Robota Geçerken Kritik Parametre Ayarları</h3>
 
-TODO: nav2 hangi parametreleri nasıl değiştirmeliyiz? anlat
+Simülasyonda çalışan bir mobil robot, gerçek dünyaya taşındığında çevresel etkiler, sensör gürültüsü ve fiziksel kısıtlamalar nedeniyle bambaşka davranır. Bu nedenle özellikle **SLAM** ve **Navigasyon (Nav2)** tarafında bazı parametrelerin yeniden ayarlanması zorunludur. Aşağıdaki bölümler, simülasyon → gerçek robot geçişinde mutlaka gözden geçirilmesi gereken kritik parametreleri özetler.
 
-### Lidar İçin ROS2 Sürücüsü
+#### 1. `slam_toolbox` — Gerçek Robotta Mutlaka Ayarlanması Gereken Parametreler
 
-Bir bileşeni üretenler kullanılacak alanı göz önünde bulundurarak o bileşen ve ortam için sürücü yazarlar. Bu neredeyse bir zorunluluktur. Çünkü üretimdeki amaç insanların bunu kullanabilmesidir. İnsanlar datasheetlere gömülüp karmaşık arayüzlerle uğraşmaktansa hali hazırda bu bileşenin üretimini yaparak zaten bu karmaşanın dilinden anlayanlar bunun içinde bir sürücü çıkarıverirler.
+Simülasyonda slam_toolbox çoğunlukla varsayılan ayarlarla temiz çalışır. Gerçekte ise sensör gürültüsü, lidar kör bölgeleri ve odometri hataları nedeniyle bazı parametrelerin kesinlikle yeniden düzenlenmesi gerekir.
 
-**LiDAR** içinde bu durum böyledir. Aldığınız cihazın sürücüsü sizin için hazırdır. Peki bu sürücü doğrudan ROS2 mesajı yayımlar mı? Örneğin **RPLidar** ailesi sensörlerinin çoğu durumda robotik için kullanıldığını bildiğinden ölçüm verileri ROS2 mesajı olarak yayımlayan bir sürücü de çıkarmışlardır. Bunu doğrudan kullanabiliriz. Tek yapmamız gereken bu sürücü kurmak ve sonrasında çalıştırmaktır. Satın aldığınız **LiDAR** modeli için zaten genellikle hangi yazılım ile çalıştırmanız gerektiği bilgisi üretici tarafından sağlanır. Piyasadaki LiDAR'lar genellikle `rplidar_ros2` ve `sllidar_ros2` paketleri ile uyumludur. Bu yüzden ***şimdi kim data sheet okuyup da  sürücü yazacak yaa?*** gibi bir endişeniz olmasın.
+##### **`use_sim_time` — Gerçekte kapalı olmalı**
 
-TODO: rplidar ve sllidar için github linkleri bırak zaten onların README'sinde yazıyor nasıl kullanılacağı
+Simülasyonda:
 
-TODO: Lidar sürücü isimlerini kontrol et
+```yaml
+use_sim_time: true
+```
+
+Gerçekte:
+
+```yaml
+use_sim_time: false
+```
+
+Açık kalırsa SLAM zaman senkronunu kaybeder.
+
+##### **`scan_topic` — Gerçek lidarın topic'ine göre ayarlanmalı**
+
+Simülasyondaki `/scan` genelde yeterlidir fakat gerçekte lidar sürücüsüne bağlıdır:
+
+* RPLidar: `/rplidar/scan`
+* SLLidar: `/scan`
+* Ouster: `/os_cloud_node/scan`
+
+Yanlış topic → SLAM çalışmaz.
+
+##### **`max_laser_range` — Lidarın gerçek menzili girilmeli**
+
+Simülasyonda lidar çoğu zaman “ideal” çalışır. Gerçek lidarların menzilleri ise sınırlıdır.
+
+Örnek:
+
+```yaml
+max_laser_range: 12.0
+```
+
+Yanlış değer, haritanın kaymasına veya loop closure’ın bozulmasına neden olur.
+
+##### **Odometri yapılandırması (map–odom–base_link tutarlılığı)**
+
+Gerçek odometri hatalıdır, bu nedenle çerçeveler doğru ayarlanmalıdır:
+
+```yaml
+odom_frame: "odom"
+base_frame: "base_link"
+provide_odom_frame: false
+```
+
+Hatalı çerçeveler → harita döner, kayar veya parçalara ayrılır.
+
+##### **Lidar frekansı (`minimum_time_interval`) — Gerçek lidar hızına göre ayarlanmalı**
+
+Gerçek lidarların çoğu 5–15 Hz çalışır.
+
+```yaml
+minimum_time_interval: 0.1
+```
+
+Yanlış değer → SLAM dağınık ve gecikmeli olur.
 
 ---
 
-### Odometri Hesaplaması
+#### 2. `nav2` — Gerçek Robotta Mutlaka Ayarlanması Gereken Parametreler
+
+Simülasyonda nav2 çok temiz çalışır; gerçek robotta ise tekerlek kaymaları, motor sınırlamaları ve lidar kör noktaları nedeniyle tuning yapılması şarttır.
+
+##### **Footprint — Gerçek gövde geometrisine göre güncellenmeli**
+
+Simülasyonda URDF collision tamdır. Gerçekte lidar kör bölgeleri ve gövde çıkıntıları nedeniyle footprint yeniden tanımlanmalıdır.
+
+```yaml
+footprint: "[[0.22, 0.22], [0.22, -0.22], [-0.22, -0.22], [-0.22, 0.22]]"
+```
+
+Hatalı footprint → duvarlara sürtme, dar alanlarda sıkışma.
+
+##### **Hız ve ivme limitleri — Motor kabiliyetine göre ayarlanmalı**
+
+Gerçek motorlar simülasyondaki kadar çevik değildir.
+
+```yaml
+max_vel_x: 0.4
+max_vel_theta: 0.8
+acc_lim_x: 0.5
+acc_lim_theta: 1.0
+```
+
+Yanlış değer → titreme, aşırı frenleme, kontrol kaybı.
+
+##### **Local costmap — Gerçek lidar görüş alanına göre düzenlenmeli**
+
+Gerçek lidar kör bölgeleri içerir.
+
+```
+obstacle_range: 4.0
+raytrace_range: 5.0
+inflation_radius: 0.3
+```
+
+Yanlış ayarlar → robot engellere çok yaklaşabilir.
+
+##### **Controller tuning — Robotun gerçek ivme/dönüş karakterine göre ayarlanmalı**
+
+Özellikle:
+
+```
+lookahead_dist
+```
+
+Gerçek robot için çoğu zaman büyütülmelidir. Yanlış ayar → zikzak ve kararsız takip.
+
+##### **Global planner seçimi — Gerçek engel yapısı için optimize edilmeli**
+
+Simülasyonda navfn işleri götürür.
+Gerçekte **Smac Hybrid** çok daha stabildir.
+
+##### **Odometri güveni (`transform_tolerance`) — Gerçek dünyada artırılmalı**
+
+Gerçekte odometri her zaman gecikmelidir.
+
+```
+transform_tolerance: 0.2
+```
+
+Bu değer düşük olursa nav2 hedefleri reddeder veya robot duraklar.
+
+---
+
+#### 3. Özet Tablo — Simülasyon vs Gerçek
+
+| Parametre      | Simülasyon Durumu | Gerçek Robotta Gereken  |
+| -------------- | ----------------- | ----------------------- |
+| Lidar menzili  | Önemli değil      | Mutlaka ayarlanmalı     |
+| Lidar frekansı | Sabit             | Cihaza göre değişir     |
+| Odometri       | Mükemmel          | Hatalı → tuning şart    |
+| Footprint      | URDF’ten gelir    | Gerçeğe göre düzenlenir |
+| Hız limitleri  | Yüksek olabilir   | Motor gücüne göre       |
+| Controller     | Default çalışır   | Tuning gerekir          |
+| Costmap        | Gürültüsüz        | Gürültü filtrelenmeli   |
+| use_sim_time   | true              | false                   |
+
+Gerçek robota geçiş sürecinde bu parametrelerin dikkatle ayarlanması, sistemin güvenli, kararlı ve tahmin edilebilir davranmasını sağlar.
+
+---
+
+<h3 id="hid-7-3-2">7.3.2. Odometri Hesaplaması </h3>
 
 Odometri, diferansiyel sürüş kullanan robotlarda konum tahmini yapmanın en temel yollarından biridir. Robot bazen dümdüz ilerler, bazen de sağa sola dönerek çembersel bir yol izler. Düz hareket kısmı oldukça basit olsa da, dönme hareketinde iş biraz matematiğe kayar. Ama merak etmeyin — burada yapacağımız şey tamamen lise fiziğinde gördüğümüz çembersel hareketin robotlara uygulanmış hâli.  
 Hadi şimdi robotun hareketten sonra nerede olduğunu birlikte hesaplayalım!
@@ -1486,7 +1641,9 @@ Bildiğimiz şeyler ise hareketten önceki konumu ve açısı
 
 Bunlardan yola çıkarak problemimizi şöyle tanımlayabiliriz 
 
-#### Düz Hareket Problemi:
+---
+
+#### Problem Tanımı:
 
 * **$d_l$**: Sol tekerin aldığı yol
 * **$d_r$**: Sağ tekerin aldığı yol
@@ -1498,15 +1655,12 @@ Bunlardan yola çıkarak problemimizi şöyle tanımlayabiliriz
 
 olmak üzere;
 
-Bir diferansiyel sürüş kinematiğine sahip araç için:
-
-* **$d_l, d_r, L, x_0, y_0, \theta_0$** değerleri biliniyor,
-* Robot düz gidiyor **($d_l \approx d_r$)**.
+Bir diferansiyel sürüş kinematiğine sahip araç için **$d_l, d_r, L, x_0, y_0, \theta_0$** değerleri biliniyor,
 
 Bu durumda hareket ettiğinde **$x_1, y_1, \theta_1$ = ?**
 
 
-#### Çözüm:
+#### Düz Hareket İçin Çözüm ($d_l \approx d_r$):
 
 Aracımızın hareketini şu şekilde gibi özetleyebiliriz.
 
@@ -1518,36 +1672,27 @@ $$
 \text{aracın gittiği yol}= \frac{d_l + d_r}{2}
 $$
 
-Şekil 3'ü bu şekilde yorumlarsak
+Şekil 3'ü bu şekilde yorumlarsak,
 
 $$
-x_1 = x_0 + \cos(\theta).\frac{(d_l + d_r)}{2}
+x_1 = x_0 + \sin(\theta).\frac{(d_l + d_r)}{2}
 $$
 
 $$
-y_1 = y_0 + \sin(\theta).\frac{(d_l + d_r)}{2}
+y_1 = y_0 + \cos(\theta).\frac{(d_l + d_r)}{2}
 $$
 
-#### Eğik Hareket Problemi:
+denklemlerini elde ederiz.
 
-* **$d_l$**: Sol tekerin aldığı yol
-* **$d_r$**: Sağ tekerin aldığı yol
-* **$L$**: İki teker arası mesafe
-* **$x_0, y_0$**: Başlangıç konumu
-* **$\theta_0$**: Başlangıç yön açısı
-* **$x_1, y_1$**: Hareket sonrası konum
-* **$\theta_1$**: Hareket sonrası yön açısı
+Düz giderken açı da zaten değişmeyeceğinden çözüm tamamlanmış olur
 
-olmak üzere;
+$$
+\theta_1 = \theta_0
+$$
 
-Bir diferansiyel sürüş kinematiğine sahip araç için:
+---
 
-* **$d_l, d_r, L, x_0, y_0, \theta_0$** değerleri biliniyor,
-* Robot düz gitmiyor **($d_l \neq d_r$)**.
-
-Bu durumda hareket ettiğinde **$x_1, y_1, \theta_1$ = ?**
-
-#### Çözüm
+#### Eğik (Çembersel) Hareket İçin Çözüm ($d_l \neq d_r$)
 
 Araç en nihayetinde bir çembersel hareket yapacaktır.
 Öyle ise kolaylık için:
@@ -1576,8 +1721,7 @@ $$
 
 denklemlerini elde etmiş oluruz.
 
-Ama bu denklemler bize gerçek $x_1$ ve $y_1$' i vermez bize onlar lazım.
-Ancak 
+Bu denklemler bize gerçek $x_1$ ve $y_1$' i vermez bize onlar lazım. Ancak 
 
 $$
 x_1 = x_0 + \Delta x
@@ -1713,6 +1857,8 @@ $$
 \theta_1 = \theta_0 + \alpha
 $$
 
+---
+
 #### Sonuç: 
 ##### Konum Güncellemesi
 
@@ -1729,11 +1875,11 @@ $$
 Düz harekette:
 
 $$
-x_1 = x_0 + \cos(\theta).(d_l + d_r) 
+x_1 = x_0 + \sin(\theta).(d_l + d_r) 
 $$
 
 $$
-y_1 = y_0 + \sin(\theta).(d_l + d_r) 
+y_1 = y_0 + \cos(\theta).(d_l + d_r) 
 $$
 
 ##### Açı Güncellemesi
@@ -1763,82 +1909,140 @@ $$
 Artık bu denklem setiyle robotunuzun odometrisini hesaplayabilirsiniz.
 
 ---
-
 <br/>
 
-<h2 id="hid-7-4">Alt Sistem Nasıl Gerçekleştirilir?</h2>
 
-Alt sistem bir mikro denetleyiciyi gerektirir. Yani en azından onun işini yapabilecek bir şey. Çeşitli hatlara elektriksel sinyaller gönderebilecek bir şey.
 
-Yapılacaklar
+<h2 id="hid-7-4">7.4. Alt Sistem Nasıl Gerçekleştirilir?</h2>
 
-- Haberleşme 
-- Diferansiyel Sürücü
+Gerçek bir AMR’ın çalışabilmesi için üst seviyede çalışan ROS2 düğümlerinin, robotun fiziksel donanımıyla güvenilir şekilde iletişim kurması gerekir. Bu noktada devreye **alt sistem** girer. Alt sistem; motorları süren, teker hızlarını ölçen, sensörlerden veri alan ve ROS2 tarafıyla haberleşen gömülü yazılımın tamamıdır.
+
+Bu sistemin temel görevi, ROS2’nin soyut komutlarını (örneğin “0.5 m/s ileri git” veya “0.3 rad/s dön”) doğrudan robotun fiziksel bileşenlerinin anlayacağı elektriksel sinyallere dönüştürmektir.  
+Kısaca alt sistem:
+
+* Üst sistemden gelen hız komutlarını alır,  
+* Bunları diferansiyel sürücü hesaplarına çevirir,  
+* Motor sürücüler üzerinden tekerleklere uygular,  
+* Encoder veya benzeri sensörlerden aldığı geri bildirimi işleyerek odometri üretir,  
+* Tüm bu veriyi ROS2’ye geri iletir.
+
+Bu bölümde alt sistemin iki temel bileşenini inceleyeceğiz:
+
+1. **Haberleşme** – ROS2 ↔ Mikrodenetleyici veri akışı  
+2. **Diferansiyel Sürücü** – Teker hızlarının hesaplanması, motor kontrolü ve odometri üretimi
+
+Alt sistem gerçek bir mikrodenetleyici üzerinde çalışabileceği gibi, Linux tabanlı bir gömülü bilgisayar üzerinde de yazılım olarak çalışabilir. Önemli olan, ROS2 ile donanım arasında güvenilir, düşük gecikmeli ve deterministik bir köprü kurmaktır.
 
 ---
 
-### Haberleşme
+<h3 id="7-4-1">7.4.1. Haberleşme</h3>
 
-TODO: micro-ros anlatısı ve kullanımı
+Alt sistemin en kritik görevlerinden biri ROS2 ile doğru şekilde iletişim kurmaktır. Çünkü üst sistem (slam_toolbox, Nav2, joystick teleop, vb.) yalnızca belirli mesaj türlerini yayınlar ve belirli mesaj türlerini bekler. Bu mesajların mikrodenetleyiciye ulaştırılması ve geri dönüşlerin ROS2 ağına sokulması için bir haberleşme katmanına ihtiyaç vardır.
+
+[Sistem Tasarımında](#hid-7-2) bu iletişim iki yönde gerçekleşir:
+
+* **Üst sistem → Alt sistem:**  
+  * `geometry_msgs/Twist` mesajı (çizgisel ve açısal hız komutu)  
+  * Kalibrasyon, sensör tetikleme veya parametre komutları  
+
+* **Alt sistem → Üst sistem:**  
+  * `nav_msgs/Odometry` üretimi  
+  * Encoder veya motor geri bildirimi  
+  * Sensör verileri (IMU, mesafe sensörü, vb.)  
+  * Durum bilgisi (batarya, hata kodları)
+
+Bu iletişimin nasıl sağlanacağı platforma göre değişir.  
+Mikrodenetleyici kullanan AMR’larda en yaygın yöntem **micro-ROS** kullanmaktır.  
+Linux tabanlı sistemlerde ise doğrudan ROS2 node çalıştırılır.
+
+>Bu haberleşme altyapısının doğru çalışması, tüm AMR mimarisinin sağlıklı işlemesi için kritiktir. Çünkü en küçük gecikme, yanlış mesaj biçimi veya paket kaybı, navigasyonun kararsızlaşmasına, hız komutlarının uygulanmamasına veya hatalı odometriye yol açabilir.
+
+#### micro-ROS Nedir?
+
+micro-ROS, klasik ROS2’nin doğrudan çalışamayacağı kadar kısıtlı gömülü sistemlerde (ARM Cortex-M, küçük RTOS’lar vb.) ROS2 benzeri bir programlama modeli kullanmamızı sağlayan bir altyapıdır. Temel fikir şudur:
+
+* Mikrodenetleyici üzerinde küçültülmüş bir **micro-ROS istemcisi (client)** çalışır.  
+* Robotun ana bilgisayarında (örneğin Jetson, NUC) ise bir **micro-ROS agent** node’u çalışır.  
+* Mikrodenetleyici ile agent arasında genellikle **seri haberleşme (UART, USB)** veya **UDP** kullanılır.  
+* Agent, mikrodenetleyiciden gelen verileri normal bir ROS2 node’u gibi ROS ağına dağıtır ve ROS2’den gelen mesajları da gömülü tarafa iletir.
+
+Dışarıdan bakıldığında mikrodenetleyicideki kod, “küçük bir ROS2 node’u” gibi davranır: topic’e abone olabilir, topic yayınlayabilir, service / action kullanabilir. Böylece:
+
+* `cmd_vel` mesajı ROS2 tarafında yayınlanır, micro-ROS agent üzerinden mikrodenetleyiciye iner,  
+* Alt sistem bu komutu alıp diferansiyel sürücüyü çalıştırır,  
+* Hesaplanan odometri tekrar micro-ROS üzerinden ROS2’ye `nav_msgs/Odometry` olarak geri gönderilir.
+
+Bu yapı sayesinde hem **ROS2 ekosistemini bozmadan** çalışırız, hem de mikrodenetleyici dünyasının avantajlarını (gerçek zamanlılık, düşük güç tüketimi, donanıma yakın kontrol) kullanmaya devam ederiz.
 
 ---
 
-### Diferansiyel Sürücü
+<h3 id="7-4-2">7.4.2. Diferansiyel Sürücü</h3>
 
-Diferansiyel sürücü, diferansiyel sürüş sistemini uygulamakla sorumlu yazılımdır. [Temel Sistem Tasarımı](#hid-7-2)' nda tanımlandığı gibi gelecek olan verinin içeriğinde **çizgisel ve açısal hız** emri vardır. Bu sürücü ise bu emirlere uymak ile mükelleftir. 
+Diferansiyel sürücü, diferansiyel sürüş sistemini uygulayan yazılımdır. [Temel Sistem Tasarımı](#hid-7-2)'nda belirtildiği gibi, sistem dışarıdan **çizgisel ve açısal hız** komutları alır ve bunları teker hızlarına dönüştürmekle yükümlüdür.
 
-Genel akış:\
-Çizgisel ve açısal hızı al -> sol ve sağ tekerin uyması gereken hızı hesapla -> hızları motora uygula 
+Genel akış şöyledir:  
+Çizgisel ve açısal hızı al → sol ve sağ tekerin gerekli hızlarını hesapla → bu hızları motora uygula.  
 
-Bunun yanında bir de konumlama için teker metriklerini göndermemiz gerekiyor.
+Ayrıca konumlama yapabilmek için, tekerleklerin katettiği mesafeyi sistemin geri bildirim olarak ROS’a göndermesi gerekir.
 
-Çizgisel ve açısal hızı haberleşme vasıtasıyla alabiliyoruz zaten ama bu modülün alması için basit bir fonksiyon bağlaması yeterli olur. 
+Çizgisel ve açısal hız, haberleşme sistemi üzerinden alınır; diferansiyel sürücü modülü bu komutu işlemek için ilgili callback fonksiyonuna bağlanır.
 
-#### **Sol ve Sağ Teker Hız Hesaplaması**
+---
 
-Bu noktada yine biraz matematiğe ihitiyacımız olacak. Lakin farklı birşey yok yine çembersel hareket üzerinden gideceğiz. Eğer çizgisel hareket 0'dan farklı, açısal hız da 0'sa o vakit hem sol hem sağ teker aynı hızda gitmeli bu hızın değeri ise verilen çizgisel hıza eşit olmalı 
+#### **1. Sol ve Sağ Teker Hız Hesaplaması**
+
+Bu aşamada temel çembersel hareket matematiğini kullanırız. Eğer açısal hız **0**, fakat çizgisel hız **0’dan farklıysa**, robot düz bir hat üzerinde ilerlemeli ve her iki tekerlek aynı hızda dönmelidir; bu hız da doğrudan çizgisel hıza eşittir.
 
 TODO: Düz giden diffdrive araç görseli
 
-Peki açısal hız 0'dan farklı olduğu durumlarda. Gelin işimize yarayacak bir formül daha çıkaralım.
+Açısal hız **0’dan farklı** olduğunda ise robot bir yay üzerinde döner. Bu durumda tekerlek hızları arasındaki fark, aracın dönme yarıçapı ve tekerlekler arası mesafe dikkate alınarak hesaplanır.
 
 TODO: Hız dönüşümü ispatı için görsel ve matematiksel gösterim
 
-Sonuçta şu denklemleri elde ettik:
+Sonuç olarak şu denklemler elde edilir:
 
 TODO: En son elde edilen denklemleri matematiksel gösterim ile ekle
 
-Artık hesaplamamız tamam çizgisel ve açısal hızı verdiğimizde, sol ve sağ teker hızını hesaplayabiliyoruz.
+Bu denklemler sayesinde çizgisel ve açısal hız verildiğinde sol ve sağ teker hızları doğru şekilde hesaplanabilir.
 
 ---
 
-#### **Hızların Motora Uygulanması (Kontrol)**
+#### **2. Hızların Motora Uygulanması (Kontrol)**
 
-Bir tekerin ne kadar hızla döneceğini öğrendik diyelim. Peki bu hızı nasıl uygulayacağız. Mikro denetleyicier pinlerine düşük akım verebilir bundan dolayı genellikle bir donanımsal sürücüye ihtiyaç duyulur. Çünkü çok küçük motorlar bile mikro denetleyicinin tek başına üstlenebileceği akımdan yüksektedir. Bu sürücüler de genel olarak PWM adını verilen bir modülasyon ile sürülürler. Bu sayede normalde ya 0 ya 1 yani ya tam güç ya hiç güç şeklinde sürebilecek iken yumuşak bir şekilde 0,7 0,5 0,3 gibi orantısal olarak sürebiliriz.
+Tekerin dönmesi gereken hızı biliyoruz; peki bu hız motora nasıl aktarılır?  
+Mikrodenetleyiciler doğrudan yüksek akım sağlayamaz, bu nedenle bir **motor sürücüsü** kullanılır. Motor sürücüler genellikle **PWM (Pulse Width Modulation)** ile kontrol edilir. PWM sayesinde motor tam güç veya sıfır güç yerine oransal olarak sürülebilir (ör. %70, %40 vb.).
 
-> PWM (Pulse Width Modulation), itki genişlik modülasyonu olarak çevrilebilir. Adından da anlaşılabileceği üzere verilen sinyalin genişliğinin ayarlanmasına göre bir sinyal oluşturma manasına gelir. Aslında bu teknikte yapılan şey basittir. çok küçük bir zamanı parçalara bölelim örneğin 100 parçaya bölelim. bir şeyi yüzde 75 açmak için bu 100 zaman parçasında 75 parça zaman boyunca 1, 25 parça boyunca ise 0 vermektir. Bu çok küçük bir zamanda olduğundan dolayı 1 ve 0 arasındaki keskinlik önemsiz kalıyor ve böylelikle oransal sürme gibi olaylar gerçekleştirilebiliyor.
+> PWM, sinyalin zaman içindeki “1” olma oranını değiştirerek farklı güç seviyeleri elde edilmesini sağlar. Çok kısa zaman dilimleri içinde sinyalin 1 ve 0 olarak tekrarlanmasıyla pratik bir analog kontrol etkisi oluşturulur.
 
-Şimdi sorumuz değişti: Tekerin 1 m/s hız ile gitmesi gerekiyor acaba kaç PWM vermeliyim? Bu soru her farklı parçaya göre cevabı değişebilir. E peki projemize özgü olarak motorumuzu, tekerleğimizi, sürtünmeyi, pil durumu gibi birçok şeyi hesaba katıp bir matematiksel model mi oluşturacağız bu sorun için? Bunu yapsak bile modeldeki etmenler dinamik olarak değişebilir. Bunun için bir kontrol algoritmasına ihtiyacımız var. İstediğimiz pozisyona çoğu durumda ulaşıp kontrol de ederek o pozisyonda kalmasını sağlayacak birşey yani. 
+Buraya kadar, istediğimiz teker hızını bildiğimizi ama bunu motora ne kadar PWM vererek sağlayacağımızı bilmediğimizi gördük. Çünkü motor-teker mekanik özellikleri, yüzey sürtünmesi, yük ve pil durumu gibi değişkenler zamanla değişir. Bu nedenle tek seferlik bir formül yerine, **sürekli geri bildirim alan** bir kontrol mekanizmasına ihtiyaç duyarız.
 
-İşte burada **PID** devreye giriyor. **PID** en basit kapalı çevrim kontrol algoritmalarından biridir. Propositional Intervative Derrivative kelimelrinin kısaltımından oluşur ki Türkçemizdeki karşılığı Oransal Toplamsal Türevsel anlamına gelir peki bunlar sadece 3 adet sıfat bunun ismi nden böyle. Bu iç sıfatı içeren **kazanç** ile yapılan hesaplamanın sonucu kontrol etmek istediğimiz sinyalin kuvvetini veriyor da onun için. Kontrol etmek istediğimiz şey için şuanki bulunduğumuz durum ile ulaşmak istediğimiz durum arasındaki farka hata denir. Bu hataya göre bu üç kazanç (ekleme usulü ile katkıda bulunduklarından ötürü kazanç denir) hesaplanır ve çıktı bu hesaplama sonucudur. PID; uygulanması basit, etkisi güzel olduğundan en popüler kontrol algoritmasıdır.  
+İşte burada **kapalı çevrim kontrol** devreye girer. Kapalı çevrim sistemler, bulunduğu durumu ve hedef durumu sürekli karşılaştırarak kontrol etkisini dinamik olarak ayarlar. Bizim senaryomuzda tekerin olması gereken hız ile mevcut hız karşılaştırılır; fark (hata) varsa PWM artırılır veya azaltılır. Böylece hem doğru hız yakalanır hem de değişen koşullara rağmen kararlı bir kontrol elde edilir.
 
-TODO: Örnek bir pid hesaplamasını 
+Bu noktada **PID** en yaygın ve etkili kapalı çevrim kontrol algoritması olarak kullanılır.  
+PID, üç bileşenden oluşur: Oransal (P), Toplamsal (I) ve Türevsel (D).  
+Motorun mevcut durumu ile hedef hız arasındaki fark “hata”dır ve PID bu hatayı işleyerek uygun PWM çıktısını üretir.
 
-> PID hesaplaması için iki türlü yaklaşım vardır: incremental (artırımsal) ve positional (pozisyonsal). ikisinin arasındaki fark sadece hesab sonucu elde edilen çıktının önceki çıktı ile toplanarak mı verileceği yoksa doğrudan mı verileceği. Incremantal genelde hızı kontrol edecek bir manipülatör için positional ise adından anlaşılabileceği üzere genelde mutlak bir pozisyonu kontrol eden manipülatör için kullanılır.
+TODO: Örnek bir pid hesaplamasını  
+TODO: PID resmi koyalım blok şema
 
-> Neden bu kullanım burada genellikle kullanılmış diye düşünürseniz, araba sürerken kendinizi hayal edin. Şehirler arası bir yolda gidiyorsunuz. Aracınızın hızını sabit 100 m/s ile gitmek istiyorsunuz. aracın hızını gaz kelebeği ile kontrol edersiniz. örneğin yüzde 50 olarak ayağınız gazda ama aracınız 90 ile gidiyor. hatanız 10. basit olsun diye sadece p kullanıyorsunuz diyelim ve onun da katsayısı 1. pid'nin çıktısı 10 olur. ama siz zaten yüzde 50 ile gaza basarak 90'a ulaşabilmişsiniz yüzde 10 basarsanız araç daha fazla yavaşlar. bunun yerine +10 olsa 60 bassanız daha yaklaşmış olmaz mısınız? 
+> PID iki şekilde uygulanabilir:  
+> **Incremental** (artırımsal) – Genellikle hız kontrolünde tercih edilir.  
+> **Positional** (pozisyonsal) – Daha çok pozisyon kontrolünde kullanılır.
+
+> Örneğin bir araçla 100 km/s hızla gitmek istediğinizi düşünün. Gaz pedalına %50 bastığınızda hızınız 90 km/s olsun. Hata 10’dur. Sadece P=1 kullansanız, çıktı 10 olur. Bu değer pedal yüzdesi olarak doğrudan verilirse araç daha da yavaşlayabilir. İncremental PID’de ise mevcut pedala eklenir: %50 + 10 = %60. Böylece araç hedef hıza yaklaşır.
 
 ---
 
-#### **Konumlama Metriklerinin Temini**
+#### **3. Konumlama Metriklerinin Temini**
 
-Diferansiyel sürüşte konumlama yapabilmek için iki tekerinde ne kadar yol gittiğini bilmek lazım gelir. Bunun içinse en popüler yöntem **encoder** ismi verilen sensörleri kullanmaktır. Bu sensörler tekerleğe bağlandığında tekerlerin hareketine göre sinyaller üretir. Bu sinyalleri yorumlayarak bir tekerin ne kadar gittiğini hesaplayabiliriz. Zaten sistem tasarımında istenen şeyde bu tekerlerin ne kadar yol katettiğini göndermektir.
+Diferansiyel sürüşte konum tahmini yapabilmek için her iki tekerin ne kadar yol aldığını bilmek gerekir. Bunun en yaygın yöntemi **encoder** kullanmaktır. Encoder’lar tekerleğe bağlanır ve dönüş miktarını darbeler (pulse) şeklinde bildirir. Bu darbeler yorumlanarak tekerleğin katettiği yol hesaplanır. Sistem tasarımında istenen de tam olarak budur: her tekerin ne kadar ilerlediğini ROS’a göndermek.
 
-TODO: enkoderlar ile ilgili, çalışma prensibini anlatan görseller ekle  
+TODO: enkoderlar ile ilgili, çalışma prensibini anlatan görseller ekle
+
 
 <br/>
 
-<h2 id="hid-7-5">Dikkat Edilmesi Gerekenler</h2>
+<h2 id="hid-7-5">7.5. Dikkat Edilmesi Gerekenler</h2>
 
 Özellikle hesaplamalarda kullanılan sabitler ve hazır paketlere sunulan parametrelere dikkat edilmelidir.
 
