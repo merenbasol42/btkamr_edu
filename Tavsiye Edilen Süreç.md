@@ -2,7 +2,10 @@
     Teoriden
 
     * Konumlama bahsinin tamamı
-    * Modelleme bahsinin Urdf temel anlatının yarısı  
+    * Modelleme bahsinin xacroya kadar
+
+    Pratik 
+    * Bir robot kol tasarlayın 
 
 # 2. Gün
     Teoriden

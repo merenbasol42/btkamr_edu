@@ -100,8 +100,9 @@ Transformların sürekli güncellenmesi sayesinde robot; sensörlerden gelen tü
 
 Her frame tek başına anlam taşımaz; anlamı diğer frame’lerle olan ilişkisi belirler.
 
-TODO: Aşağıdaki ifadeye uygun bir görsel
-
+<div align="center">
+  <img src="./images/a-to-b.jpeg">
+</div>
 Örnek:
 
 $$
@@ -122,7 +123,9 @@ Transformlar zincir hâlinde birbirine bağlanarak tüm sistemde tam bir konumla
 
 ROS2’de tüm frame’ler hiyerarşik bir ağaç yapısı oluşturur. Bu yapıya **TF Tree** denir.
 
-TODO: Bir tf tree görseli tf_toolstan çıkma
+<div align="center">
+  <img src="./images/transform-hesabi.jpeg">
+</div>
 
 Bir frame’in:
 
@@ -131,7 +134,6 @@ Bir frame’in:
 
 Bu yapı sayesinde robotun herhangi iki frame’i arasındaki konum, doğrudan bağlı olmasalar bile, aradaki zincir takip edilerek hesaplanabilir.
 
-TODO: aşşadaki ifadeye uyfun bir görsel
 
 Örnek hesaplama:
 
@@ -173,7 +175,10 @@ URDF iki ana yapı üzerine kuruludur:
 
 Robotun fiziksel parçalarını temsil eder. Gövde, tekerlek, kol segmenti gibi her fiziksel yapı bir link’tir.
 
-TODO: Bi tane link görseli
+<div align="center">
+  <img src="./images/link-model.png" width="40%">
+  <img src="./images/link-ciplak.png" width="40%">
+</div>
 
 <h3 id="joint">Joint</h3>
 
@@ -181,8 +186,9 @@ TODO: Bi tane link görseli
 
 URDF modeli linklerin ve jointlerin bir araya gelmesiyle robotun tam fiziksel yapısını oluşturur.
 
-TODO: Bi tane joint görseli
-
+<div align="center">
+  <img src="./images/joint.png">
+</div>
 <br/>
 
 <h2 id="hid-3-2">3.2. Link Anlatısı</h2>
@@ -207,9 +213,15 @@ Bir `<visual>` bloğu aşağıdaki alt etiketleri içerir:
   ```xml
   <geometry>
       <box size="1 0.5 0.2" />
+      <!-- veya -->
       <cylinder radius="0.2" length="1" />
+      <!-- veya -->
       <sphere radius="0.1" />
+      <!-- veya -->
       <mesh filename="package://robot_description/meshes/base.dae" scale="1 1 1" />
+      <!-- veya -->
+      <mesh filename="file://tam-dosya-yolu" scale="1 1 1" />
+
   </geometry>
   ```
 
@@ -305,8 +317,6 @@ Aşağıda her joint türü ayrıntılı açıklanmıştır:
 
 Hiçbir şekilde hareket etmeyen, tamamen sabit eklemdir.
 
-TODO: Her tür için bi tane GIF mi koysak
-
 **Kullanılabilir tagler:**
 
 * `<parent>`
@@ -322,6 +332,9 @@ TODO: Her tür için bi tane GIF mi koysak
     <origin xyz="0 0 0.2" rpy="0 0 0" />
 </joint>
 ```
+<div align="center">
+  <img src="./images/fixed.png">
+</div>
 
 ---
 
@@ -356,6 +369,9 @@ Belirli bir eksende sınırlı dönüş yapabilen eklemdir.
     <limit lower="-1.57" upper="1.57" effort="5" velocity="1.0" />
 </joint>
 ```
+<div align="center">
+  <img src="./images/revoulute.gif">
+</div>
 
 ---
 
@@ -384,6 +400,10 @@ Bir eksende sınırsız dönebilen eklemdir. Tekerlek gibi sürekli dönen parç
 </joint>
 ```
 
+<div align="center">
+  <img src="./images/continuous.gif">
+</div>
+
 ---
 
 ### 4. Prismatic Joint
@@ -410,11 +430,14 @@ Tek eksende doğrusal (lineer) hareket eden eklemdir.
 <joint name="slider_joint" type="prismatic">
     <parent link="rail" />
     <child link="slider" />
-    <origin xyz="0 0 0" rpy="0 0 0" />
+    <origin xyz="0 0 0.1" rpy="0 0 0" />
     <axis xyz="1 0 0" />
     <limit lower="0.0" upper="0.3" effort="10" velocity="0.5" />
 </joint>
 ```
+<div align="center">
+  <img src="./images/prismatic.gif">
+</div>
 
 ---
 
@@ -426,7 +449,9 @@ Her joint türü, fizik motorunun robotun hareketini doğru simüle edebilmesi i
 
 URDF (Unified Robot Description Format), bir robotun fiziksel yapısını ve kinematik ilişkilerini **XML tabanlı** olarak tanımlamamızı sağlayan bir formattır. URDF dosyası, robotun link–joint organizasyonunu, görsel ve fiziksel temsilini içerir ve ROS2 ekosisteminde robotun yapısal tanımını oluşturur.
 
-TODO: Örnek bi tane robot var ya ros2'nin onun linkleri açık halinin fotosunu koy
+<div align="center">
+	<img src="./images/ornek-urdf.png">
+</div>
 
 Her URDF dosyası iki temel unsurla başlar:
 
@@ -463,7 +488,9 @@ Bu alt bölümde URDF’in ROS2’ye nasıl “tanıtıldığını” ve hareket
 
 `robot_state_publisher`, URDF tabanlı robot tanımını ROS2 ekosistemine dahil eden **merkezi düğümdür**. URDF'in ROS2 tarafında anlamlı bir hale gelmesi, TF (transform) ağacının oluşması ve linkler arasındaki dönüşümlerin yayınlanması bu düğüm üzerinden gerçekleşir.
 
-![robot_state_publisher](./images/rqt_graph_robot_state_pubber.png)
+<div align="center">
+  <img src="./images/robot-state-pubber.png">
+</div>
 
 Bu düğümün temel görevleri üç başlık altında özetlenebilir:
 
@@ -552,8 +579,11 @@ Aşağıda, ROS2 ekosistemine entegre edilebilecek basit bir URDF tanımı örne
 	<link name="link1">
 		<visual>
 			<geometry>
-				<box size="0.6 0.4 0.2"/>
+				<sphere radius="0.1"/>
 			</geometry>
+            <material name="my_blue">
+                <color rgba="0 0 1 1" />
+            </material>
 		</visual>
 	</link>
 
@@ -561,8 +591,11 @@ Aşağıda, ROS2 ekosistemine entegre edilebilecek basit bir URDF tanımı örne
 	<link name="link2">
 		<visual>
 			<geometry>
-				<sphere radius="0.2"/>
+				<box size="0.4 0.2 0.1"/>
 			</geometry>
+			<material name="my_blue">
+                <color rgba="0 1 0 1" />
+            </material>
 		</visual>
 	</link>
 
@@ -570,9 +603,9 @@ Aşağıda, ROS2 ekosistemine entegre edilebilecek basit bir URDF tanımı örne
 	<joint name="joint_link1_to_link2" type="revolute">
 		<parent link="link1"/>
 		<child link="link2"/>
-		<origin xyz="0 0 0.1" rpy="0 0 0"/>
+		<origin xyz="0 0 0.15" rpy="0 0 0"/>
 		<axis xyz="0 0 1"/>
-		<limit lower="-1.57" upper="1.57"/>
+		<limit lower="-1.57" upper="1.57" effort="5" velocity="1.0"/>
 	</joint>
 
 </robot>
@@ -581,7 +614,7 @@ Aşağıda, ROS2 ekosistemine entegre edilebilecek basit bir URDF tanımı örne
 Bu model "deneme.urdf" adıyla kaydedildikten sonra ROS2 ortamına aşağıdaki komutla dahil edilebilir:
 
 ```bash
-ros2 run robot_state_publisher robot_state_publisher robot_desc:=/home/.../deneme.urdf
+ros2 run robot_state_publisher robot_state_publisher /home/.../deneme.urdf
 ```
 
 Ardından, Rviz2 arayüzü çalıştırılarak oluşturulan robot modeli görselleştirilebilir:
@@ -593,13 +626,14 @@ rviz2
 Modelin eklem hareketlerinin gözlemlenebilmesi için ise eklem durumlarını yayınlayan yardımcı arayüz şu şekilde başlatılabilir:
 
 ```bash
-ros2 run joint_state_publisher joint_state_publisher_gui
+ros2 run joint_state_publisher_gui joint_state_publisher_gui
 ```
 
 Bu adımların uygulanmasıyla URDF modeli, ROS2'nin TF yapısı içerisinde dinamik olarak izlenebilir hale gelir.
 
-TODO: Verilen örneğin fotosu mümkünse GIF'i koyalm
-
+<div align="center">
+  <img src="./images/deneme-urdf.gif">
+</div>
 
 <h2 id="hid-3-7">3.7 Xacro Aracı</h2>
 
@@ -667,9 +701,12 @@ URDF dosyaları büyüdükçe tekrar eden bloklar, uzun parametre listeleri ve f
 <xacro:if value="${use_lidar}">
 	<link name="lidar_link">
 		<visual>
-			<geometry><cylinder radius="0.03" length="0.05"/></geometry>
+			<geometry>
+				<cylinder radius="0.03" length="0.05"/>
+			</geometry>
 		</visual>
 	</link>
+
 	<joint name="lidar_joint" type="fixed">
 		<parent link="base_link"/>
 		<child link="lidar_link"/>
@@ -1671,7 +1708,7 @@ $$
 Şekil 3'ü bu şekilde yorumlarsak,
 
 $$
-x_1 = x_0 + \sin(\theta).\frac{(d_l + d_r)}{2}
+x_1 = x_0 - \sin(\theta).\frac{(d_l + d_r)}{2}
 $$
 
 $$
@@ -1803,7 +1840,7 @@ d_l.r + d_l.\frac{L}{2} = d_r.r - d_r.\frac{L}{2}
 $$
 
 $$
-d_l.r + d_r.r =  - d_r.\frac{L}{2} - d_l.\frac{L}{2}
+d_l.r - d_r.r =  - d_r.\frac{L}{2} - d_l.\frac{L}{2}
 $$
 
 $$
