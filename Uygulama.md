@@ -33,7 +33,7 @@ Yukarıdaki görselde gözüken robot kol modelini çıkarınız.
 #### Adım 2:
 
 <div align="center">
-    <img src="./images/practices/uygulama-0-1.gif">
+    <img src="./images/practices/uygulama-0-2.gif">
 </div>  
 
 Yaptığınız robot kola, görselde gözüktüğü gibi bir adet tutucu ekleyin 
