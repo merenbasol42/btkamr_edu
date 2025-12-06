@@ -83,18 +83,18 @@ Konumlama sisteminin temelinde iki önemli kavram bulunur: **frame** ve **transf
 
 <h3 id="frame-cerceve">Frame (Çerçeve)</h3>
 
-Bir frame, uzayda bir referans noktası ve bu noktanın oryantasyonudur. Her sensör, her robot parçası ve robotun kendisi bir frame ile temsil edilir.
-
-Bir frame şu iki bilgiyi içerir:
-
-* **Pozisyon (position):** x, y, z
-* **Oryantasyon (orientation):** x, y, z, w (quaternion)
+Bir frame, uzayda bir referans noktasıdır. Her sensör, her robot parçası ve robotun kendisi bir frame ile temsil edilir.
 
 <h3 id="transform-donusum">Transform (Dönüşüm)</h3>
 
 Transform, iki frame arasındaki göreli konum ve yönelim farkını ifade eder. Yani:
 
 **“A frame’ine göre baktığımızda B frame’i nerededir?”** sorusunun cevabıdır.
+
+Bir transform konumlama olarak şu iki bilgiyi içerir:
+
+* **Pozisyon (position):** x, y, z
+* **Oryantasyon (orientation):** x, y, z, w (quaternion)
 
 Transformların sürekli güncellenmesi sayesinde robot; sensörlerden gelen tüm bilgileri kendi konum ve yönelimine göre anlamlandırabilir.
 
