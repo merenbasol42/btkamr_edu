@@ -1,7 +1,7 @@
 <h1>Uygulamalar</h3>
 
 **0. [Robotik Kol Modeli](#hid-0)**
-**1. [Robot Modelinin Çıkarımı]()**
+**1. [Robot Modelinin Çıkarımı](#hid-1)**
 **2. [Gazebo Launcher'ı Oluşturumu]()**
 **3. [Diferansiyel Sürüş Plugini Eklenmesi]()**
 **3. [Klavye Kontrol (teleop keyboard)]()**
