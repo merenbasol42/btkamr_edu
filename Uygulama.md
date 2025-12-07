@@ -274,6 +274,11 @@ Yaptığınız robot kola, görselde gözüktüğü gibi bir adet tutucu ekleyin
 
 <h1 id="hid-1">1. Robot Modelinin Çıkarımı </h1>
 
+<div align="center">
+    <img src="./images/practices/uygulama-1.png">
+</div>  
+
+
 Diferansiyel sürüşe uygun bir robot tasarlayın. İstediğiniz şekilde olabilir. Yeterki diferansiyel sürüş dinamiğine uygun olsun.
 
 <details>
