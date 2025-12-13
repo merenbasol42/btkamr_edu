@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="btkamr">
+
+<gazebo>
+    <plugin 
+        filename="gz-sim-joint-state-publisher-system"
+        name="gz::sim::systems::JointStatePublisher"
+    >
+
+        <!-- Yayınlanacak topic ismi -->
+        <topic>btkamr/joint_states</topic>
+    </plugin>  
+</gazebo>
+
+</robot>

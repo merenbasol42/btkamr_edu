@@ -48,6 +48,7 @@
                 <geometry>
                     <cylinder radius="${wh_radius}" length="${wh_thick}"/>
                 </geometry>
+                <material name="gray"/>
             </visual>
 
             <collision>
@@ -103,6 +104,8 @@
                 <geometry>
                     <sphere radius="${cwh_radius}"/>
                 </geometry>
+                <material name="gray"/>
+                  
             </visual>
 
             <!-- Çarpışma ve sürtünme ayarları -->

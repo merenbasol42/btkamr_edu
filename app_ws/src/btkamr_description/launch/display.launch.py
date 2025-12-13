@@ -18,10 +18,10 @@ def generate_launch_description():
             executable="robot_state_publisher",
             parameters=[{"robot_description": robot_desc}]
         ),
-        Node(
-            package="joint_state_publisher_gui",
-            executable="joint_state_publisher_gui"
-        ),
+        # Node(
+        #     package="joint_state_publisher_gui",
+        #     executable="joint_state_publisher_gui"
+        # ),
         Node(
             package="rviz2",
             executable="rviz2"
