@@ -32,9 +32,6 @@
     <!-- Dosyaları Dahil Etme -->
     
     <xacro:include filename="./wheels.urdf.xacro" />
-    <xacro:include filename="./g_plugins.xacro" />
-
-
 
     <!-- Base Link -->
 
@@ -70,11 +67,15 @@
         </inertial>
 
         <visual>
-            <geometry><box size="${chasis_len_x} ${chasis_len_y} ${chasis_len_z}"/></geometry>
+            <geometry>
+                <box size="${chasis_len_x} ${chasis_len_y} ${chasis_len_z}"/>
+            </geometry>
         </visual>
 
         <collision>
-            <geometry><box size="${chasis_len_x} ${chasis_len_y} ${chasis_len_z}"/></geometry>
+            <geometry>
+                <box size="${chasis_len_x} ${chasis_len_y} ${chasis_len_z}"/>
+            </geometry>
         </collision>
     </link>
 

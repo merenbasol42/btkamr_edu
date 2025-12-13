@@ -3,14 +3,14 @@
 **0. [Robotik Kol Modeli](#hid-0)**
 **1. [Robot Modelinin Çıkarımı](#hid-1)**
 **2. [Gazebo Launcher'ı Oluşturumu](#hid-2)**
-**3. [Diferansiyel Sürüş Plugini Eklenmesi]()**
-**3. [Klavye Kontrol (teleop keyboard)]()**
-**4. [Lidar Sensörünün Eklenmesi]()**
-**5. [Genel Launcher Paket Düzenlemesi]()**
-**6. [Odometri Plugini ve ROS2 Entegrasyonu]()**
-**7. ['slam_toolbox' İle Haritalama]()**
-**8. ['nav2' İle Haritalama Çalışması]()**
-**9. ['nav2' İle Basit Uygulama]()**
+**3. [Diferansiyel Sürüş Plugini Eklenmesi](#hid-3)**
+**4. [Klavye Kontrol (teleop keyboard)](#hid-4)**
+**5. [Lidar Sensörünün Eklenmesi](#hid-5)**
+**6. [Genel Launcher Paket Düzenlemesi](#hid-6)**
+**7. [Odometri Plugini ve ROS2 Entegrasyonu](#hid-7)**
+**8. ['slam_toolbox' İle Haritalama]()**
+**9. ['nav2' İle Haritalama Çalışması]()**
+**10. ['nav2' İle Basit Uygulama]()**
 
 ---
 
@@ -883,6 +883,71 @@ Gazebo'yu başlatacak ve robotu spawn edecek bir launcher ayarlayın. Robot'un R
     Jointler görünmüyor çünkü jointi publishleyen yok :(
 
 </details>
+
+<details> 
+    <summary>
+        Çözümü görmek için tıklayın.
+    </summary>
+
+    ayıp :(
+
+</details>
+
+<h1 id="hid-3">3. Diferansiyel Sürüş Plugininin Eklenmesi</h1>
+
+Robotunuzun URDF dosyasına diferansiyel sürüş plugini ekleyin ve Gazebo'da test edin
+
+<details> 
+    <summary>
+        Çözümü görmek için tıklayın.
+    </summary>
+
+    ayıp :(
+
+</details>
+
+<h1 id="hid-4">4. Klavye Kontrol (teleop)</h1>
+
+Robotunuzu, ROS2 ile yazılmış bir klavye kontrol düğümü ile hızını kontrol edin.
+
+<details> 
+    <summary>
+        Çözümü görmek için tıklayın.
+    </summary>
+
+    ayıp :(
+
+</details>
+
+<h1 id="hid-5">5. Lidar Sensörünün Eklenmesi</h1>
+
+Robotunuza bir LiDAR sensörü ekleyin ve RViz'de görüntüleyin
+
+<details> 
+    <summary>
+        Çözümü görmek için tıklayın.
+    </summary>
+
+    ayıp :(
+
+</details>
+
+<h1 id="hid-6">6. Genel Launcher Paket Düzenlemesi</h1>
+
+
+<details> 
+    <summary>
+        Çözümü görmek için tıklayın.
+    </summary>
+
+    ayıp :(
+
+</details>
+
+
+<h1 id="hid-7">7. Odometri Plugini ve ROS2 Entegrasyonu</h1>
+
+Robotunuzun URDF'ine bir odometry publisher plugini ekleyin ve RViz'de gözlemleyin.
 
 <details> 
     <summary>

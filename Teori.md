@@ -1036,6 +1036,15 @@ komutu ile başlattığınız simülasyon, ROS tarafında bu araç ile başlatı
 #### Örnek kullanım
 
 ```python
+import os
+
+from launch import LaunchDescription
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+
+from ament_index_python.packages import get_package_share_directory
+
+
 IncludeLaunchDescription(
     PythonLaunchDescriptionSource(
         os.path.join(
@@ -1045,7 +1054,7 @@ IncludeLaunchDescription(
         )
     ),
     launch_arguments={
-        'gz_args': ['-r -v 4 ', world_path] #cli'dan çalışırken de verebileceğimiz argümanlar
+        'gz_args': ['-r -v 4 ', "tam/dünya/yolunuz.sdf"] #cli'dan çalışırken de verebileceğimiz argümanlar
     }.items()
 )
 ```
@@ -1106,7 +1115,7 @@ Büyük projelerde tek tek komut yazmak yerine **YAML dosyasıyla toplu eşleşt
 Node(
     package='ros_gz_bridge',
     executable='parameter_bridge',
-    parameters=[{'config_file': "<dosya_yolu>"}],
+    parameters=[{'config_file': "<dosya_yolu.yaml>"}],
 ),
 ```
 
