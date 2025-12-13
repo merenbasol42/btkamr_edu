@@ -11,7 +11,6 @@ PKG_NAME: str = "btkamr_description"
 
 
 
-
 def generate_launch_description():
     pkg_share = get_package_share_directory(PKG_NAME)
     urdf_path = os.path.join(pkg_share, "urdf", "main.urdf.xacro")
