@@ -6,6 +6,7 @@ from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import ExecuteProcess
 
 PKG_NAME: str = "btkamr_description"
 
@@ -19,17 +20,21 @@ def generate_launch_description():
     robot_desc = ParameterValue(Command(["xacro ", urdf_path]), value_type=str) # boşluk önemli xacro' '
 
     return LaunchDescription([
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                os.path.join(
-                    get_package_share_directory('ros_gz_sim'),
-                    'launch',
-                    'gz_sim.launch.py'
-                )
-            ),
-            launch_arguments={
-                'gz_args': ['-r -v 4 ', "empty.sdf"] #cli'dan çalışırken de verebileceğimiz argümanlar
-            }.items()
+        # IncludeLaunchDescription(
+        #     PythonLaunchDescriptionSource(
+        #         os.path.join(
+        #             get_package_share_directory('ros_gz_sim'),
+        #             'launch',
+        #             'gz_sim.launch.py'
+        #         )
+        #     ),
+        #     launch_arguments={
+        #         'gz_args': ['-r -v 4 ', "empty.sdf"] #cli'dan çalışırken de verebileceğimiz argümanlar
+        #     }.items()
+        # ),
+        ExecuteProcess(
+            cmd=['gz', 'sim', '-v4', 'empty.sdf'],
+            output='screen'
         ),
         Node(
             package='ros_gz_sim',
