@@ -32,10 +32,6 @@ def generate_launch_description():
                 'gz_args': ['-r -v 4 ', "empty.sdf"] #cli'dan çalışırken de verebileceğimiz argümanlar
             }.items()
         ),
-        # ExecuteProcess(
-        #     cmd=['gz', 'sim', '-v4', 'empty.sdf'],
-        #     output='screen'
-        # ),
         Node(
             package='ros_gz_sim',
             executable='create',
