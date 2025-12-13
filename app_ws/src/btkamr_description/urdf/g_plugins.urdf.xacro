@@ -13,4 +13,26 @@
     </plugin>  
 </gazebo>
 
+<plugin
+	filename="gz-sim-diff-drive-system"
+	name="gz::sim::systems::DiffDrive"
+>
+
+	<!-- Hız emirlerinin alınacağı topic -->
+	<topic>btkamr/cmd_vel</topic>
+
+	<!-- Sol teker jointi -->
+	<left_joint>base_TO_wh_l</left_joint>
+	
+	<!-- Sağ teker jointi -->
+	<right_joint>base_TO_wh_r</right_joint>
+
+	<!-- Tahrik tekerlekleri arasındaki mesafe -->
+	<wheel_separation>${(chasis_len_y / 2.0 + wh_thick / 2.0 + wh_chasis_gap) * 2}</wheel_separation>
+
+	<!-- Teker yarıçapı -->
+	<wheel_radius>${wh_radius}</wheel_radius>
+
+</plugin>
+
 </robot>
