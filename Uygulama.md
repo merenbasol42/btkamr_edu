@@ -2,7 +2,7 @@
 
 **0. [Robotik Kol Modeli](#hid-0)**
 **1. [Robot Modelinin Çıkarımı](#hid-1)**
-**2. [Gazebo Launcher'ı Oluşturumu]()**
+**2. [Gazebo Launcher'ı Oluşturumu](#hid-2)**
 **3. [Diferansiyel Sürüş Plugini Eklenmesi]()**
 **3. [Klavye Kontrol (teleop keyboard)]()**
 **4. [Lidar Sensörünün Eklenmesi]()**
@@ -281,8 +281,614 @@ Yaptığınız robot kola, görselde gözüktüğü gibi bir adet tutucu ekleyin
 
 Diferansiyel sürüşe uygun bir robot tasarlayın. İstediğiniz şekilde olabilir. Yeterki diferansiyel sürüş dinamiğine uygun olsun.
 
+>* Workspace oluşturun 
+>* İçine modelini taşıyacak bir paket açın
+>* Paketin içine modelinizi oluşturun
+>* Ayrıca modeli kontrol etmek için basit bir launch file oluşturun
+
 <details>
-    <summary>Çözümü görmek için tıklayın</summary>
+    <summary>Çözümü görmek için tıklayın</summary>  
+
+<br/>
+
+Workspace oluşturun (Eğer yoksa)
+
+```bash
+mkdir btkamr_ws
+mkdir btkamr_ws/src
+```
+
+Robot modeli için paket oluşturun
+
+```bash
+cd btkamr_ws/src
+ros2 pkg create btkamr_description
+```
+
+Gereksiz klasörleri silebilirisiniz
+
+```bash
+rm -rf btkamr_description/src btkamr_description/include 
+```
+
+Paketin içine robot modelini ve launcherları taşıyacak klasörleri oluşturun
+
+```bash
+mkdir btkamr_description/urdf btkamr_description/launch
+```
+
+Şimdi Visual Studio Code'da çalışabiliriz.
+
+Workspace dizinine gelelim ve Visual Studio Code'u başlatalım.
+
+```bash
+cd ..
+code .
+```
+
+`CMakeList.txt` dosyasını düzenleyelim. Bundan sonra `urdf` ve `launch` klasörlerini de `share` dizinine taşısın.
+
+```cmake
+# ament_package() satırının hemen üstüne yapıştıralım
+
+install(
+    DIRECTORY urdf launch
+    DESTINATION share/${PROJECT_NAME}/
+)
+```
+
+Artık modeli oluşturmaya geçelim.
+
+`urdf` klasörünün içine `main.urdf.xacro` isminde bir dosya oluşturalım.
+
+Temel bir başlangıç yapalım.
+
+```xml
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="btkamr">
+
+    <link name="base_link"/>
+
+</robot>
+```
+
+Renkleri ekleyelim.
+```xml
+<material name="red">
+    <color rgba="1 0 0 1"/>
+</material>
+
+<material name="green">
+    <color rgba="0 1 0 1"/>
+</material>
+
+<material name="blue">
+    <color rgba="0 0 1 1"/>
+</material>
+
+<material name="gray">
+    <color rgba="0.7 0.7 0.7 1"/>
+</material>
+```
+
+Şasemizi ekleyelim
+
+```xml
+<xacro:property name="chasis_len_x" value="0.6"/>
+<xacro:property name="chasis_len_y" value="0.4"/>
+<xacro:property name="chasis_len_z" value="0.2"/>
+<xacro:property name="base_chasis_offset" value="0.08"/>
+<xacro:property name="chasis_mass" value="2.0"/>
+
+<joint name="base_TO_chasis" type="fixed">
+    <origin xyz="0.0 0.0 ${base_chasis_offset}" rpy="0.0 0.0 0.0"/>
+    <parent link="base_link"/>
+    <child link="chasis"/>
+</joint>
+
+<link name="chasis">
+    <inertial>
+        <mass value="${chasis_mass}"/>
+        <inertia 
+            ixx="${chasis_mass * (chasis_len_y * chasis_len_y + chasis_len_z * chasis_len_z) / 12.0}"
+            iyy="${chasis_mass * (chasis_len_x * chasis_len_x + chasis_len_z * chasis_len_z) / 12.0}"
+            izz="${chasis_mass * (chasis_len_x * chasis_len_x + chasis_len_y * chasis_len_y) / 12.0}"
+            ixy="0" ixz="0" iyz="0"
+        />
+    </inertial>
+
+    <visual>
+        <geometry>
+            <box size="${chasis_len_x} ${chasis_len_y} ${chasis_len_z}"/>
+        </geometry>
+        <material name="green"/>
+    </visual>
+
+    <collision>
+        <geometry><box size="${chasis_len_x} ${chasis_len_y} ${chasis_len_z}"/></geometry>
+    </collision>
+</link>
+
+```
+
+
+Tahrik tekerleri için bir makro oluşturalım
+
+```xml
+<xacro:property name="wh_radius" value="0.1"/>
+<xacro:property name="wh_thick" value="0.04"/>
+<xacro:property name="wh_chasis_gap" value="0.001"/>
+<xacro:property name="wh_mass" value="1.0"/>
+
+
+
+<xacro:macro name="create_wh" params="postfix yfact">
+
+    <joint name="base_TO_wh_${postfix}" type="continuous">
+        <origin xyz="0.0 ${yfact * (chasis_len_y / 2.0 + wh_thick / 2.0 + wh_chasis_gap)} 0.0" rpy="0.0 0.0 0.0"/>
+        <parent link="base_link"/>
+        <child link="wh_${postfix}"/>
+        <axis xyz="0.0 1.0 0.0"/>
+    </joint>
+
+    <link name="wh_${postfix}">
+        <inertial>
+            <origin xyz="0.0 0.0 0.0" rpy="${pi / 2.0} 0.0 0.0"/>
+
+            <mass value="${wh_mass}"/>
+            <inertia 
+                ixx="${wh_mass * (3*wh_radius*wh_radius + wh_thick*wh_thick) / 12.0}"
+                iyy="${wh_mass * (3*wh_radius*wh_radius + wh_thick*wh_thick) / 12.0}"
+                izz="${wh_mass * (wh_radius*wh_radius) / 2.0}"
+                ixy="0" ixz="0" iyz="0"
+            />
+        </inertial>
+
+        <visual>
+            <origin xyz="0.0 0.0 0.0" rpy="${pi / 2.0} 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="${wh_radius}" length="${wh_thick}"/>
+            </geometry>
+            <material name="gray"/>
+        </visual>
+
+        <collision>
+            <origin xyz="0.0 0.0 0.0" rpy="${pi / 2.0} 0.0 0.0"/>
+            <geometry>
+                <cylinder 
+                    radius="${wh_radius}" 
+                    length="${wh_thick}"/>
+            </geometry>
+        </collision>
+    </link>
+
+</xacro:macro>
+
+```
+
+Bu makroları kullanalım
+
+``` xml
+<xacro:create_wh postfix="l" yfact="1.0"/>
+<xacro:create_wh postfix="r" yfact="-1.0"/>
+```
+
+Şimdi de avare tekerler için makro oluşturalım
+
+```xml
+<xacro:property name="cwh_chasis_offset_xy" value="0.1"/>
+<!-- yarı çapı diğer niteliklere göre ayarlayalım -->
+<xacro:property name="cwh_radius" value="${(wh_radius - (chasis_len_z / 2.0 - base_chasis_offset)) / 2.0}"/>
+<xacro:property name="cwh_mass" value="0.00001"/>
+
+
+<xacro:macro name="create_cwh" params="postfix xfact yfact">
+
+    <!-- Yaw joint: x ekseni etrafında dönme -->
+    <joint name="chasis_TO_cwh_${postfix}" type="fixed">
+        <origin xyz="${xfact * (chasis_len_x / 2.0 - cwh_chasis_offset_xy)} 
+                    ${yfact * (chasis_len_y / 2.0 - cwh_chasis_offset_xy)} 
+                    ${-1 * (chasis_len_z / 2.0 + cwh_radius)}" rpy="0 0 0"/>
+        <parent link="chasis"/>
+        <child link="cwh_${postfix}"/>
+    </joint>
+
+    <!-- BALL CASTER LINK -->
+    <link name="cwh_${postfix}">
+
+        <!-- Çok hafif top (dönüşlerde robotu tutmaması için) -->
+        <inertial>
+            <mass value="0.01"/>
+            <origin xyz="0 0 0"/>
+            <inertia
+                ixx="1e-5" ixy="0" ixz="0"
+                iyy="1e-5" iyz="0"
+                izz="1e-5"/>
+        </inertial>
+
+        <!-- Görsel -->
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <sphere radius="${cwh_radius}"/>
+            </geometry>
+            <material name="gray"/>
+        </visual>
+
+        <!-- Çarpışma ve sürtünme ayarları -->
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <sphere radius="${cwh_radius}"/>
+            </geometry>
+            <material name="gray"/>
+        </collision>
+    </link>
+
+    <!-- gazebo için sürtünme değerlerini azaltıyoruz -->
+    <gazebo reference="cwh_${postfix}">
+        <collision>
+            <surface>
+                <friction>
+                    <ode>
+                        <mu>0.001</mu>    <!-- temel sürtünme -->
+                        <mu2>0.001</mu2>  <!-- ikinci eksen sürtünmesi -->
+                        <slip1>1.0</slip1>
+                        <slip2>1.0</slip2>
+                    </ode>
+                </friction>
+                <bounce>
+                    <restitution_coefficient>0.0</restitution_coefficient>
+                </bounce>
+            </surface>
+        </collision>
+    </gazebo>
+
+</xacro:macro>
+```
+
+Bu makroyu kullanalım
+
+```xml
+<xacro:create_cwh postfix="lf" xfact="1.0" yfact="1.0"/>
+<xacro:create_cwh postfix="lb" xfact="-1.0" yfact="1.0"/>
+<xacro:create_cwh postfix="rf" xfact="1.0" yfact="-1.0"/>
+<xacro:create_cwh postfix="rb" xfact="-1.0" yfact="-1.0"/>
+```
+
+<br/>
+<br/>
+<br/>
+
+Artık herşeyi yaptık. İsteğinize göre urdf kodlarını konumlandırıp `main.urdf.xacro` dosyasında include ederek kullanabilirsiniz.  
+
+> Örneğin tekerler ile ilgili olan kodlar `wheels.urdf.xacro` isimli bir dosyada, şasi başka bir dosyada ve en son hepsi `main.urdf.xacro` dosyasında include edilerek kullanılabilir.  
+
+Sonuç olarak şu şekilde toplam kodu şu şekilde özetleyebiliriz
+
+`wheels.urdf.xacro`: 
+
+```xml
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="btkamr">
+
+    <!-- Tahrik Teker Nitelikleri  -->
+
+    <xacro:property name="wh_radius" value="0.1"/>
+    <xacro:property name="wh_thick" value="0.04"/>
+    <xacro:property name="wh_chasis_gap" value="0.001"/>
+    <xacro:property name="wh_mass" value="1.0"/>
+
+
+
+    <!-- Avare Teker Nitelikleri -->
+
+    <xacro:property name="cwh_chasis_offset_xy" value="0.1"/>
+    <!-- yarı çapı diğer niteliklere göre ayarlayalım -->
+    <xacro:property name="cwh_radius" value="${(wh_radius - (chasis_len_z / 2.0 - base_chasis_offset)) / 2.0}"/>
+    <xacro:property name="cwh_mass" value="0.00001"/>
+
+
+
+    <!-- Tahrik Tekerleği Makrosu -->
+    <xacro:macro name="create_wh" params="postfix yfact">
+
+        <joint name="base_TO_wh_${postfix}" type="continuous">
+            <origin xyz="0.0 ${yfact * (chasis_len_y / 2.0 + wh_thick / 2.0 + wh_chasis_gap)} 0.0" rpy="0.0 0.0 0.0"/>
+            <parent link="base_link"/>
+            <child link="wh_${postfix}"/>
+            <axis xyz="0.0 1.0 0.0"/>
+        </joint>
+
+        <link name="wh_${postfix}">
+            <inertial>
+                <origin xyz="0.0 0.0 0.0" rpy="${pi / 2.0} 0.0 0.0"/>
+
+                <mass value="${wh_mass}"/>
+                <inertia 
+                    ixx="${wh_mass * (3*wh_radius*wh_radius + wh_thick*wh_thick) / 12.0}"
+                    iyy="${wh_mass * (3*wh_radius*wh_radius + wh_thick*wh_thick) / 12.0}"
+                    izz="${wh_mass * (wh_radius*wh_radius) / 2.0}"
+                    ixy="0" ixz="0" iyz="0"
+                />
+            </inertial>
+
+            <visual>
+                <origin xyz="0.0 0.0 0.0" rpy="${pi / 2.0} 0.0 0.0"/>
+                <geometry>
+                    <cylinder radius="${wh_radius}" length="${wh_thick}"/>
+                </geometry>
+                <material name="gray"/>
+            </visual>
+
+            <collision>
+                <origin xyz="0.0 0.0 0.0" rpy="${pi / 2.0} 0.0 0.0"/>
+                <geometry>
+                    <cylinder 
+                        radius="${wh_radius}" 
+                        length="${wh_thick}"/>
+                </geometry>
+            </collision>
+        </link>
+
+    </xacro:macro>
+
+
+
+    <!-- Tahrik Tekerlekleri Oluşturumu -->
+
+    <xacro:create_wh postfix="l" yfact="1.0"/> <!-- sol -->
+    <xacro:create_wh postfix="r" yfact="-1.0"/> <!-- sağ -->
+
+
+
+    <!-- Avare Teker Makrosu -->
+
+    <xacro:macro name="create_cwh" params="postfix xfact yfact">
+
+        <!-- Yaw joint: x ekseni etrafında dönme -->
+        <joint name="chasis_TO_cwh_${postfix}" type="fixed">
+            <origin xyz="${xfact * (chasis_len_x / 2.0 - cwh_chasis_offset_xy)} 
+                        ${yfact * (chasis_len_y / 2.0 - cwh_chasis_offset_xy)} 
+                        ${-1 * (chasis_len_z / 2.0 + cwh_radius)}" rpy="0 0 0"/>
+            <parent link="chasis"/>
+            <child link="cwh_${postfix}"/>
+        </joint>
+
+        <!-- BALL CASTER LINK -->
+        <link name="cwh_${postfix}">
+
+            <!-- Çok hafif top (dönüşlerde robotu tutmaması için) -->
+            <inertial>
+                <mass value="0.01"/>
+                <origin xyz="0 0 0"/>
+                <inertia
+                    ixx="1e-5" ixy="0" ixz="0"
+                    iyy="1e-5" iyz="0"
+                    izz="1e-5"/>
+            </inertial>
+
+            <!-- Görsel -->
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <sphere radius="${cwh_radius}"/>
+                </geometry>
+                <material name="gray"/>
+                  
+            </visual>
+
+            <!-- Çarpışma ve sürtünme ayarları -->
+            <collision>
+                <origin xyz="0 0 0" rpy="0 0 0"/>
+                <geometry>
+                    <sphere radius="${cwh_radius}"/>
+                </geometry>
+            </collision>
+        </link>
+
+        <!-- gazebo için sürtünme değerlerini azaltıyoruz -->
+        <gazebo reference="cwh_${postfix}">
+            <collision>
+                <surface>
+                    <friction>
+                        <ode>
+                            <mu>0.001</mu>    <!-- temel sürtünme -->
+                            <mu2>0.001</mu2>  <!-- ikinci eksen sürtünmesi -->
+                            <slip1>1.0</slip1>
+                            <slip2>1.0</slip2>
+                        </ode>
+                    </friction>
+                    <bounce>
+                        <restitution_coefficient>0.0</restitution_coefficient>
+                    </bounce>
+                </surface>
+            </collision>
+        </gazebo>
+
+    </xacro:macro>
+
+
+
+    <!-- Avare Tekerlerin Kullanımı -->
+
+    <xacro:create_cwh postfix="lf" xfact="1.0" yfact="1.0"/>
+    <xacro:create_cwh postfix="lb" xfact="-1.0" yfact="1.0"/>
+    <xacro:create_cwh postfix="rf" xfact="1.0" yfact="-1.0"/>
+    <xacro:create_cwh postfix="rb" xfact="-1.0" yfact="-1.0"/>
+
+</robot>
+```
+
+`main.urdf.xacro`:
+
+```xml
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="btkamr">
+
+    <!-- Renk Tanımlamaları -->
+    <material name="red">
+        <color rgba="1 0 0 1"/>
+    </material>
+
+    <material name="green">
+        <color rgba="0 1 0 1"/>
+    </material>
+
+    <material name="blue">
+        <color rgba="0 0 1 1"/>
+    </material>
+
+    <material name="gray">
+        <color rgba="0.7 0.7 0.7 1"/>
+    </material>
+
+
+
+    <!-- Şase Nitelikleri -->
+
+    <xacro:property name="chasis_len_x" value="0.6"/>
+    <xacro:property name="chasis_len_y" value="0.4"/>
+    <xacro:property name="chasis_len_z" value="0.2"/>
+    <xacro:property name="base_chasis_offset" value="0.08"/>
+    <xacro:property name="chasis_mass" value="2.0"/>
+
+
+
+    <!-- Dosyaları Dahil Etme -->
+    
+    <xacro:include filename="./wheels.urdf.xacro" />
+    <xacro:include filename="./g_plugins.xacro" />
+
+
+
+    <!-- Base Link -->
+
+    <link name="base_footprint"/>
+    
+    <link name="base_link"/>
+
+    <joint name="base_TO_footprint" type="fixed">
+        <origin xyz="0.0 0.0 ${wh_radius}" rpy="0.0 0.0 0.0"/>
+        <parent link="base_footprint"/>
+        <child link="base_link"/>
+    </joint>
+
+
+
+    <!-- Şase Oluşturumu -->
+
+    <joint name="base_TO_chasis" type="fixed">
+        <origin xyz="0.0 0.0 ${base_chasis_offset}" rpy="0.0 0.0 0.0"/>
+        <parent link="base_link"/>
+        <child link="chasis"/>
+    </joint>
+
+    <link name="chasis">
+        <inertial>
+            <mass value="${chasis_mass}"/>
+            <inertia 
+                ixx="${chasis_mass * (chasis_len_y * chasis_len_y + chasis_len_z * chasis_len_z) / 12.0}"
+                iyy="${chasis_mass * (chasis_len_x * chasis_len_x + chasis_len_z * chasis_len_z) / 12.0}"
+                izz="${chasis_mass * (chasis_len_x * chasis_len_x + chasis_len_y * chasis_len_y) / 12.0}"
+                ixy="0" ixz="0" iyz="0"
+            />
+        </inertial>
+
+        <visual>
+            <geometry><box size="${chasis_len_x} ${chasis_len_y} ${chasis_len_z}"/></geometry>
+        </visual>
+
+        <collision>
+            <geometry><box size="${chasis_len_x} ${chasis_len_y} ${chasis_len_z}"/></geometry>
+        </collision>
+    </link>
+
+</robot>
+```
+<br/>
+<br/>
+<br/>
+
+Şimdi robot modelimizi oluşturduğumuza göre artık RViz'de görüntüleyelim. Bunun için bir launch dosyası yazalım.
+
+`launch` klasörünün altına `display.launch.py` isminde bir python betiği oluşturalım.
+
+```python
+import os
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.substitutions import Command
+from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
+
+PKG_NAME: str = "btkamr_description"
+
+def generate_launch_description():
+    pkg_share = get_package_share_directory(PKG_NAME)
+    urdf_path = os.path.join(pkg_share, "urdf", "main.urdf.xacro")
+    robot_desc = ParameterValue(Command(["xacro ", urdf_path]), value_type=str) # boşluk önemli xacro' '
+
+    return LaunchDescription([
+        Node(
+            package="robot_state_publisher",
+            executable="robot_state_publisher",
+            parameters=[{"robot_description": robot_desc}]
+        ),
+        Node(
+            package="joint_state_publisher_gui",
+            executable="joint_state_publisher_gui"
+        ),
+        Node(
+            package="rviz2",
+            executable="rviz2"
+        ),
+    ])
+```
+
+Artık build edelim
+
+```bash
+# workspace dizininde olduğumuzdan emin olalım
+colcon build
+```
+
+Çalıştıralım
+
+```bash
+# workspace dizininde olduğumuzdan emin olalım
+source install/setup.bash
+ros2 launch btkamr_description display.launch.py
+```
+
+Bir hata görünüyorsa düzeltelim ve adımları tekrarlayalım.
+
+Uygulama 1 tamamlanmıştır.
+
+</details>
+
+<h1 id="hid-2">2. Gazebo Launcher'ı Oluşturumu </h1>
+
+Gazebo'yu başlatacak ve robotu spawn edecek bir launcher ayarlayın. Robot'un RViz'de doğru göründüğünden emin olun.
+
+
+<details> 
+    <summary>
+        İpucu için tıklayın.
+    </summary>
+
+    Jointler görünmüyor çünkü jointi publishleyen yok :(
+
+</details>
+
+<details> 
+    <summary>
+        Çözümü görmek için tıklayın.
+    </summary>
 
     ayıp :(
+
 </details>

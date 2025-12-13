@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="btkamr">
+
+    <!-- Differential Drive -->
+    <gazebo> 
+        <plugin
+            filename="gz-sim-diff-drive-system"
+            name="gz::sim::systems::DiffDrive">
+
+            <topic>btkamr/cmd_vel</topic>
+            <left_joint>base_TO_wh_l</left_joint>
+            <right_joint>base_TO_wh_r</right_joint>
+            <wheel_separation>${chasis_len_y + wh_thick + wh_chasis_gap * 2}</wheel_separation>
+            <wheel_radius>${wh_radius}</wheel_radius>
+            <odom_publish_frequency>1</odom_publish_frequency>
+
+        </plugin>
+    </gazebo>
+
+    <!-- Joint State Publisher -->
+    <gazebo> 
+        <plugin 
+            filename="gz-sim-joint-state-publisher-system"
+            name="gz::sim::systems::JointStatePublisher"
+        >
+            <!-- <joint_name>base_TO_wh_l</joint_name>
+            <joint_name>base_TO_wh_r</joint_name>
+
+            <joint_name>chasis_TO_cwh_lf</joint_name>
+            <joint_name>chasis_TO_cwh_lb</joint_name>
+            <joint_name>chasis_TO_cwh_rf</joint_name>
+            <joint_name>chasis_TO_cwh_rb</joint_name> -->
+
+            <topic>btkamr/joint_states</topic>
+        </plugin>
+    </gazebo>
+
+    <gazebo>
+        <plugin
+            filename="gz-sim-odometry-publisher-system"
+            name="gz::sim::systems::OdometryPublisher"
+        >
+            <odom_frame>odom_frame</odom_frame>
+            <odom_topic>btkamr/odom</odom_topic>
+            <robot_base_frame>base_footprint</robot_base_frame>
+            <odom_publish_frequency>10</odom_publish_frequency>
+        </plugin>
+
+    </gazebo>
+
+</robot>

@@ -21,10 +21,13 @@
   3.7 [Xacro Aracı](#hid-3-7)
 
 4. **[Simülasyon (Gazebo)](#hid-4)**  
-  4.4 [Temel SDF](#hid-4-1)
-  4.1 [ROS bağlantısı](#hid-4-2)  
-  4.2 [Pluginler](#hid-4-3)  
-  4.3 [Sensörler](#hid-4-4)  
+  4.1 [SDF (Simulation Defination Format)](#hid-4-1)
+  4.2 [SDF - URDF Etkileşimi](#hid-4-2)  
+  4.3 [Gazebo - ROS Bağlantısı](#hid-4-3)
+  4.4 [Pluginler](#hid-4-4)  
+  4.5 [Sensörler](#hid-4-5)  
+  4.6 [Dünya Oluşturma](#hid-4-6)
+  4.7 [Model Oluşturma](#hid-4-7)
 
 5. **[Haritalama (slam_toolbox)](#hid-5)**   
   5.1 ['slam_toolbox' Çalışma Mantığı](#hid-5-1)  
@@ -851,9 +854,138 @@ gz sim
 
 Karşınıza çıkan varsayılan dünyalardan birini seçerek programı deneyebilirsiniz.  
 
+
+
 <br/>
 
-<h2 id="hid-4-1">4.1 ROS Bağlantısı</h2>
+
+
+<h2 id="hid-4-1">4.1. SDF (Simulation Description Format)</h2>
+
+Gazebo simülasyon ortamında kullanılan **Simulation Description Format (SDF)**, URDF’e kıyasla daha kapsamlı ve esnek bir model tanımlama formatıdır. XML tabanlı olan SDF, yalnızca robotların kinematik yapısını değil; **fiziksel etkileşimleri, sensörleri ve simülasyon dünyasını** da tanımlamaya olanak tanır.
+
+URDF temel olarak robotun bağlantı (link) ve eklem (joint) yapısına odaklanırken, SDF doğrudan **simülasyon odaklı** bir yaklaşıma sahiptir. Bu nedenle Gazebo, çalışırken URDF modellerini dahili olarak SDF formatına dönüştürür.
+
+SDF ile:
+
+* Dünya (world) tanımı yapılabilir
+* Sensörler (kamera, LiDAR, IMU vb.) doğal olarak tanımlanabilir
+* Çarpışma, sürtünme ve atalet gibi fizik parametreleri daha ayrıntılı belirtilebilir
+
+Aşağıda SDF’nin temel yapısını gösteren basit bir örnek verilmiştir:
+
+```xml
+<sdf version="1.6">
+  <model name="simple_box">
+    <static>false</static>
+    <link name="link">
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>1 1 1</size>
+          </box>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>
+```
+
+Bu örnekte bir model, tek bir link ve yalnızca görsel geometri tanımı ile ifade edilmiştir. Daha karmaşık robotlar için SDF; eklemler, atalet bilgileri, çarpışma geometrileri ve sensör tanımlarını içerecek şekilde genişletilebilir.
+
+Özetle, **URDF robot tanımı için yeterli ve sade bir çözüm sunarken**, SDF özellikle Gazebo tabanlı simülasyonlarda **daha gerçekçi ve kapsamlı bir tanımlama** imkânı sağlar. Bu çalışmada ayrıntılı simülasyon bileşenleri için SDF, robotun kinematik yapısı için ise URDF tercih edilmiştir.
+
+
+<br/>
+
+
+<h2 id="hid-4-2">4.2. SDF - URDF Etkileşimi</h2>
+
+Gazebo, temel olarak **SDF** dosyalarıyla çalışır. Dünyaları ve modelleri kendi simülasyon ortamında SDF üzerinden tanımlar. Ancak çoğu durumda robotumuzu **URDF** kullanarak modellemek isteriz. Aynı zamanda da Gazebo’nun sunduğu simülasyon özelliklerinden faydalanmamız gerekir.
+
+Örneğin:
+
+* Parçaların sürtünme katsayılarını ayarlamak
+* Gazebo için yazılmış plugin’leri aktif etmek
+
+Bunu yapmanın **basit ve yaygın bir yolu** vardır:
+
+👉 **URDF içinde `<gazebo>` etiketlerini kullanmak**
+
+URDF dosyasında, `<robot>` etiketi içerisinde yer alan her `<gazebo>` etiketi Gazebo tarafından okunur ve değerlendirilir. Gazebo açısından bu içerik, sanki doğrudan bir **SDF dosyasının içine yazılmış** gibi ele alınır.
+
+Bu sayede SDF’e özgü pek çok özelliği, URDF modelini bozmadan kullanmak mümkün olur.
+
+#### URDF İçine Plugin Eklemek
+
+Bir Gazebo plugin’ini URDF üzerinden eklemek için aşağıdaki gibi bir yapı kullanılabilir:
+
+```xml
+<gazebo>
+  <plugin
+    filename="gz-sim-joint-state-publisher-system"
+    name="gz::sim::systems::JointStatePublisher"
+  >
+    <joint_name>joint1</joint_name>
+    <joint_name>joint2</joint_name>
+    <topic>robot1/joint_states</topic>
+  </plugin>
+</gazebo>
+```
+
+> ⚠️ **Önemli:**
+> Bu `<gazebo>` bloğunun, atası mutlaka `<robot>` etiketi olması gerekir.
+
+---
+
+#### Belirli Bir Link’i Manipüle Etmek
+
+Eğer yalnızca belirli bir **link** üzerinde değişiklik yapmak istiyorsanız, `<gazebo>` etiketine `reference` parametresi ekleyebilirsiniz. Bu parametre sayesinde ilgili link’e ait fiziksel özellikler özelleştirilebilir.
+
+Örneğin, bir link’in Gazebo simülasyonundaki sürtünme değerlerini azaltmak için:
+
+```xml
+<!-- Gazebo için sürtünme değerlerini azaltıyoruz -->
+<gazebo reference="link_ismi">
+  <collision>
+    <surface>
+      <friction>
+        <ode>
+          <mu>0.001</mu>    <!-- temel sürtünme -->
+          <mu2>0.001</mu2>  <!-- ikinci eksen sürtünmesi -->
+          <slip1>1.0</slip1>
+          <slip2>1.0</slip2>
+        </ode>
+      </friction>
+      <bounce>
+        <restitution_coefficient>0.0</restitution_coefficient>
+      </bounce>
+    </surface>
+  </collision>
+</gazebo>
+```
+> ⚠️ **Önemli:**
+> Bu `<gazebo>` bloğunun, atası mutlaka `<robot>` etiketi olması gerekir.
+
+Bu yapı sayesinde yalnızca ilgili link’in Gazebo’daki fizik davranışı etkilenir; URDF’in geri kalanı değişmeden kalır.
+
+---
+
+#### Sonuç
+
+Gazebo’da robotun simülasyon özelliklerini tanımlamak için **mutlaka ayrı bir SDF dosyası kullanmak zorunda değilsiniz**. URDF içerisine eklenen `<gazebo>` etiketleri sayesinde:
+
+* Fizik parametrelerini ayarlayabilir
+* Gazebo plugin’lerini etkinleştirebilir
+* Simülasyona özel davranışları tanımlayabilirsiniz
+
+Bu yaklaşım, **URDF tabanlı robot modellemesi ile Gazebo simülasyon yeteneklerini birleştirmenin pratik ve esnek bir yoludur.**
+
+
+<br/>
+
+
+<h2 id="hid-4-3">4.3. Gazebo - ROS Bağlantısı</h2>
 
 Gazebo Sim, **Gazebo Transport** adında, ROS2 ile **doğrudan uyumlu olmayan** kendine ait bir iletişim altyapısı kullanır. Bu yapı topic, service ve component tabanlı mesajlaşma sunar ve ROS2'ye benzer; ancak **DDS tabanlı ROS2 iletişimiyle aynı değildir** ve doğal olarak birbirleriyle konuşamazlar.
 
@@ -878,11 +1010,11 @@ Bu anlatıda `ros_gz_sim` ve `ros_gz_bridge` paketlerine odaklanacağız.
 
 `ros_gz_sim`, Gazebo’nun başlatılması, dünya yönetimi, varlık (entity) oluşturma/kaldırma gibi pek çok işlemi ROS2 üzerinden yapabilmemizi sağlayan **geniş bir araç koleksiyonudur**.
 
-Bu eğitim kapsamında `run` ve `create` araçlarını aktif olarak kullanacağız.
+Bu eğitim kapsamında `gz_sim.launch.py` ve `create` araçlarını aktif olarak kullanacağız.
 
-### `run`
+### `gz_sim.launch.py`
 
-`run` executable’ı, Gazebo Sim’i ROS2 tarafından başlatmak için kullanılan temel araçtır.
+`gz_sim.launch.py` isimli launch dosyası, Gazebo Sim’i ROS2 tarafından başlatmak için kullanılan temel araçtır.
 
 Normalde terminalde:
 
@@ -892,7 +1024,7 @@ gz sim my_world.sdf
 
 komutu ile başlattığınız simülasyon, ROS tarafında bu araç ile başlatılır.
 
-#### `run` ne yapar?
+#### `gz_sim.launch.py` ne yapar?
 
 * Bir **world dosyasını (SDF)** yükleyerek Gazebo Sim’i başlatır.
 * Arkaplanda ekstra bir kontrol mantığı çalıştırmaz; **Gazebo’nun kendi simülasyon motorunu** ayağa kaldırır.
@@ -904,12 +1036,18 @@ komutu ile başlattığınız simülasyon, ROS tarafında bu araç ile başlatı
 #### Örnek kullanım
 
 ```python
-Node(
-    package='ros_gz_sim',
-    executable='run',
-    output='screen',
-    arguments=['-r', os.path.join(pkg_share, 'worlds', 'my_world.sdf')],
-),
+IncludeLaunchDescription(
+    PythonLaunchDescriptionSource(
+        os.path.join(
+            get_package_share_directory('ros_gz_sim'),
+            'launch',
+            'gz_sim.launch.py'
+        )
+    ),
+    launch_arguments={
+        'gz_args': ['-r -v 4 ', world_path] #cli'dan çalışırken de verebileceğimiz argümanlar
+    }.items()
+)
 ```
 
 ### `create`
@@ -930,25 +1068,6 @@ Node(
     executable='create',
     parameters=[{'topic': 'robot_description'}],
 ),
-```
----
-
-### `ros_gz_sim` Paketindeki Diğer Araçlar
-
-Aşağıdaki araçlar bu eğitimde doğrudan kullanılmayacak olsa da bilmekte fayda vardır:
-
-| Araç / Executable | Görevi (Kısa Tanım) |
-|-|-|
-| **factory** | SDF/URDF tabanlı yeni bir varlığı sahneye ekler (alternatif spawn metodu). |
-| **remove** | Sahnedeki bir varlığı kaldırır. |
-| **reset** | Dünyayı veya simülasyonu çeşitli modlarda resetler. |
-| **log** | Log kaydı başlatma/durdurma işlemleri. |
-| **gz_sim** | Gazebo’nun kendi çalıştırıcısının ROS tarafından çağrılabilen düşük seviyeli varyasyonu; gelişmiş bazı kullanım senaryolarında tercih edilir. |
-
-#### Kurulum
-
-```bash
-sudo apt install ros-${ROS_DISTRO}-ros-gz
 ```
 
 ### 2. `ros_gz_bridge`
@@ -991,17 +1110,19 @@ Node(
 ),
 ```
 
-#### Kurulum
+### 3. Kurulum
+
+Yukarıdakiler ve diğer ROS - Gazebo ilişkilerine yardımcı olan paketler şu şekilde kurulabilir.
 
 ```bash
-sudo apt install ros-${ROS_DISTRO}-ros-gz-bridge
+sudo apt install ros-${ROS_DISTRO}-ros-gz
 ```  
 
 <br/>
 
-<h2 id="hid-4-2">4.2 Plugin Anlatısı</h2>
+<h2 id="hid-4-4">4.4. Plugin Anlatısı</h2>
 
-Gazebo’da *plugin*, simülasyon ortamındaki bir modelin, sensörün veya dünya bileşeninin davranışını tanımlayan, C++ ile yazılmış bir yazılım modülüdür. Tek başına bir model sadece geometri, kütle ve bağlantılardan ibarettir; hareket etmez, sensör üretmez, kontrol edilemez. İşte plugin’ler bu boşluğu doldurur ve simülasyona “davranış” kazandırır.
+Gazebo’da ***plugin***, simülasyon ortamındaki bir modelin, sensörün veya dünya bileşeninin davranışını tanımlayan, C++ ile yazılmış bir yazılım modülüdür. Tek başına bir model sadece geometri, kütle ve bağlantılardan ibarettir; hareket etmez, sensör üretmez, kontrol edilemez. İşte plugin’ler bu boşluğu doldurur ve simülasyona ***davranış*** kazandırır.
 
 Bir plugin:
 
@@ -1165,7 +1286,7 @@ Bu üç plugin birlikte bir AMR’ın Gazebo simülasyonda “gerçek robot gibi
 
 <br/>	
 
-<h2 id="hid-4-3">4.3 Sensörler</h2>  
+<h2 id="hid-4-5">4.5. Sensörler</h2>  
 
 Sensör, fiziksel bir olayı tespit etmek amacıyla bir çıkış sinyali üreten cihazdır. Basitçe, çevrelerindeki bir özelliği (örneğin ışığı, sıcaklığı, nem oranını, hareketi veya ses seviyesini) ölçen ve bu özellikleri genellikle bir elektrik sinyali haline getiren cihaz olarak tanımlanabilir.
 
@@ -1426,7 +1547,376 @@ Kamera → *yalnızca genel sensör sistemi yeterlidir.*
 
 <br/>
 
-<h2 id="hid-4-4">Temel SDF</h2>  
+<h3 id="hid-4-6">Gazebo Dünyaları</h2>  
+
+Gazebo’da **dünya (world)**, simülasyonun çalıştığı ana ortamı ifade eder. Yerçekimi, aydınlatma, fizik motoru ayarları ve sahnede bulunan tüm modeller dünya dosyası içerisinde tanımlanır. Kısacası dünya; robotların, sensörlerin ve diğer nesnelerin etkileşimde bulunduğu sahnedir.
+
+Gazebo dünyaları **SDF (Simulation Description Format)** kullanılarak tanımlanır ve genellikle `.world` veya `.sdf` uzantılı dosyalar halinde bulunur.
+
+
+##### Basit Bir Dünya Yapısı
+
+En temel haliyle bir dünya dosyası; fizik motoru, yerçekimi ve sahnede bulunacak modelleri içerir. Aşağıda oldukça sade bir dünya örneği yer almaktadır:
+
+```xml
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="benim_dunyam">
+
+    <!-- Fizik ayarları -->
+    <physics name="default_physics" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <!-- Yerçekimi -->
+    <gravity>0 0 -9.81</gravity>
+
+    <!-- Aydınlatma -->
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>1 1 1 1</diffuse>
+      <specular>0.1 0.1 0.1 1</specular>
+      <direction>-0.5 0.1 -1</direction>
+    </light>
+
+    <!-- Zemin -->
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <!-- Tanımlanmış bir modeli ekleme -->
+    <include>
+      <uri>model://benim_modelim</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+
+    <!-- Ayrıca model burda da oluşturulabilir-->
+    <!-- Çok basit bir model: tek kutu -->
+    <model name="basit_kutu">
+      <!-- Modelin dünyadaki pozu -->
+      <pose>1 0 0.5 0 0 0</pose>
+
+      <!-- Model sabit olmasın -->
+      <static>false</static>
+
+      <link name="link">
+        <!-- Atalet (çok basit ve kaba değerler) -->
+        <inertial>
+          <mass>1.0</mass>
+          <inertia>
+            <ixx>0.01</ixx>
+            <iyy>0.01</iyy>
+            <izz>0.01</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+
+        <!-- Çarpışma geometrisi -->
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>1 1 1</size>
+            </box>
+          </geometry>
+        </collision>
+
+        <!-- Görsel geometrisi -->
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>1 1 1</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0 0 1 1</ambient>   <!-- Mavi -->
+            <diffuse>0 0 1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>
+```
+
+Bu örnekte:
+
+* Dünya ismi **benim_dunyam** olarak tanımlanmıştır.
+* Fizik motoru olarak **ODE** kullanılmıştır.
+* Yerçekimi değeri gerçek dünyaya uygun şekilde ayarlanmıştır.
+* Güneş ışığı (`sun`) sahneye eklenmiştir.
+* Varsayılan **ground_plane** modeli kullanılmıştır.
+* Daha önce oluşturduğumuz `benim_modelim` dünyaya dahil edilmiştir.
+
+##### Dünya Dosyasını Çalıştırma
+
+Oluşturduğunuz dünya dosyasını Gazebo’da çalıştırmak için aşağıdaki komut kullanılabilir:
+
+```bash
+gz sim benim_dunyam.world
+```
+
+Eğer dünya dosyası özel bir dizindeyse, tam yolunu vermeniz gerekir. Alternatif olarak dünya dosyasını da **GZ_SIM_RESOURCE_PATH** içine ekleyerek sadece ismiyle çağırabilirsiniz.
+
+---
+
+Bu yapı sayesinde; farklı ortamlar, test sahneleri ve senaryolar oluşturarak robotlarınızı çok daha kontrollü bir şekilde simüle edebilirsiniz.
+
+<br/>
+
+<h3 id="hid-4-7">4.7. Gazebo Modelleri</h2>  
+
+Gazebo’da sahneye eklenen her varlık bir **model** olarak tanımlanır. Yani simülasyonumuza herhangi bir nesne eklemek istediğimizde, aslında bir Gazebo modeli oluşturmuş oluruz. Benzer şekilde robotumuzu simülasyona *spawn* ederken kullandığımız **URDF** dosyası da arka planda bir Gazebo modeline dönüştürülür.
+
+URDF’te aşina olduğumuz **link**, **joint**, **collision**, **visual** gibi kavramların neredeyse tamamı Gazebo model yapısında da karşılık bulur. Yapısal olarak oldukça benzerdirler; bu da URDF bilen biri için Gazebo modellemesini öğrenmeyi kolaylaştırır.
+
+#### Özel Model Oluşturma
+
+Kendi özel modelimizi oluşturmak için belirli bir klasör yapısını takip etmemiz gerekir. Model adının `benim_modelim` olduğunu varsayalım. Gazebo’nun beklediği temel klasör yapısı şu şekildedir:
+
+```text
+benim_modelim
+|
+├── meshes
+│   ├── mesh1.STL
+│   └── mesh2.STL
+│    
+├── model.config
+└── model.sdf
+```
+
+* **meshes/**: Modelde kullanılacak 3B mesh dosyalarını (STL, DAE vb.) içerir.
+* **model.sdf**: Modelin fiziksel ve görsel özelliklerinin tanımlandığı ana dosyadır.
+* **model.config**: Modelin meta verilerini (isim, sürüm, yazar bilgisi vb.) içerir.
+
+#### `model.sdf` Örneği
+
+`model.sdf` dosyası içerisinde mesh kullanarak (ya da mesh olmadan) modelinizi tanımlayabilirsiniz. Aşağıda oldukça basit bir **kutu (box)** modeli örneği yer alıyor:
+
+```xml
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <model name="benim_modelim">
+    <static>false</static>
+
+    <link name="link">
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>1 1 1</size>
+          </box>
+        </geometry>
+      </visual>
+
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>1 1 1</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <mass>1.0</mass>
+        <inertia>
+          <ixx>0.1</ixx>
+          <iyy>0.1</iyy>
+          <izz>0.1</izz>
+        </inertia>
+      </inertial>
+    </link>
+  </model>
+</sdf>
+```
+
+Bu örnekte:
+
+* Tek bir **link** tanımlanmıştır.
+* Hem **visual** hem de **collision** geometrisi olarak bir kutu kullanılmıştır.
+* Basit bir kütle ve atalet matrisi eklenmiştir.
+
+Mesh kullanmak isterseniz `<box>` yerine `<mesh>` etiketi ile STL/DAE dosyalarınızı tanımlayabilirsiniz.
+
+#### `model.config` Dosyası
+
+`model.config` dosyası, modelin kimlik bilgilerini içerir. Gazebo bu dosyayı modeli tanımak ve listelemek için kullanır.
+
+Örnek bir `model.config` dosyası:
+
+```xml
+<?xml version="1.0" ?>
+<model>
+    <name>benim_modelim</name>
+    <version>1.0</version>
+    <sdf version="1.6">model.sdf</sdf>
+    <author>
+        <name>isim</name>
+        <email>mail_adresi@gmail.com</email>
+    </author>
+    <description>
+        Bu benim modelimin açıklaması
+    </description>
+</model>
+```
+
+
+### Modeli Dünyada Kullanma
+
+Oluşturulan bir Gazebo modelini bir world dosyası içinde kullanabilmek için üç temel yöntem vardır:
+
+1. Modelin tam dosya yolunu vermek
+2. Gazebo Fuel linki kullanmak
+3. Model klasörünü resource path’e ekleyip sadece model ismini kullanmak
+
+Aşağıda her yöntem için ayrı ayrı, çalışır örnekler verilmiştir.
+
+---
+
+#### 1. Modelin Tam Dosya Yolunu Vererek Kullanma
+
+Bu yöntemde model, world dosyası içinde mutlak (absolute) dosya yolu ile çağrılır. Genellikle hızlı testler için tercih edilir.
+
+Örnek world dosyası:
+
+```xml
+<sdf version="1.9">
+  <world name="default">
+
+    <include>
+      <uri>file:///home/user/gazebo_models/my_robot</uri>
+      <name>my_robot_instance</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+
+  </world>
+</sdf>
+```
+
+<br/>
+
+Örnek model klasör yapısı:
+
+```
+my_robot/
+ ├── model.sdf
+ ├── model.config
+ └── meshes/
+```
+
+* **Artısı:** Hızlı ve basit
+* **Eksisi:** Taşınabilir değildir, farklı sistemlerde path kırılır
+
+---
+
+#### 2. Gazebo Fuel Linki Kullanarak Model Çağırma
+
+Model Gazebo Fuel platformuna yüklenmişse, world dosyasında doğrudan Fuel URL’si kullanılarak çağrılabilir.
+
+Örnek world dosyası:
+
+```xml
+<sdf version="1.9">
+  <world name="default">
+
+    <include>
+      <uri>
+        https://fuel.gazebosim.org/1.0/OpenRobotics/models/Beer
+      </uri>
+      <pose>1 0 0 0 0 0</pose>
+    </include>
+
+  </world>
+</sdf>
+```
+
+Bu yöntemle model ilk çalıştırmada indirilir ve yerel cache dizinine kaydedilir (`~/.gz/fuel`).
+
+
+* **Artı:** Lokal dosya gerekmez, paylaşımı kolaydır
+* **Eksi:** İnternet bağlantısına bağımlıdır
+
+---
+
+#### 3. Gazebo Resource Path Kullanarak Model İsmi ile Çağırma
+
+En temiz ve önerilen yöntemdir. Modelin bulunduğu klasör, `GZ_SIM_RESOURCE_PATH` environment variable’ına eklenir.
+
+Örnek klasör yapısı:
+
+```
+/home/user/my_gz_models/
+ └── my_robot/
+     ├── model.sdf
+     ├── model.config
+     └── meshes/
+```
+<br/>
+
+Launch dosyası şu şekilde olabilir:
+
+```python
+import os
+from launch import LaunchDescription
+from launch.actions import SetEnvironmentVariable
+
+
+def generate_launch_description():
+
+    models_path = "/home/user/my_gz_models"
+
+    existing_resource_path = os.environ.get("GZ_SIM_RESOURCE_PATH", "")
+    new_resource_path = (
+        models_path + ":" + existing_resource_path
+        if existing_resource_path else models_path
+    )
+
+    return LaunchDescription([
+        SetEnvironmentVariable(
+            name="GZ_SIM_RESOURCE_PATH",
+            value=new_resource_path
+        ),
+    ])
+```
+<br/>
+
+Böylece world dosyasında şu şekilde kullanılabilir:
+
+```xml
+<sdf version="1.9">
+  <world name="default">
+
+    <include>
+      <uri>model://my_robot</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+
+  </world>
+</sdf>
+```
+
+
+* **Artısı:** Taşınabilir, ROS 2 ve Docker uyumlu, profesyonel kullanım için idealdir
+* **Eksisi:** İlk kurulum adımı gerektirir
+
+---
+
+
+#### Özet
+
+* Kendi geliştirilen modeller için `GZ_SIM_RESOURCE_PATH` kullanılması önerilir
+* Hazır ve genel modeller için Gazebo Fuel uygundur
+* Sadece hızlı testler için tam dosya yolu yöntemi tercih edilebilir
+
+| Yöntem         | Taşınabilir | Offline | Önerilir |
+| -------------- | ----------- | ------- | -------- |
+| Tam dosya yolu | Hayır       | Evet    | Hayır    |
+| Gazebo Fuel    | Evet        | Hayır   | Kısmen   |
+| Resource path  | Evet        | Evet    | Evet     |
+
 
 <br/>
 <br/>
