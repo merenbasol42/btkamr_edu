@@ -874,6 +874,12 @@ Uygulama 1 tamamlanmıştır.
 
 Gazebo'yu başlatacak ve robotu spawn edecek bir launcher ayarlayın. Robot'un RViz'de doğru göründüğünden emin olun.
 
+* gazebo.launch.py dosyası oluştur
+* gazeboyu başlat
+* robotu gazeboda spawn et
+* plugin ekle joint state pbulisher
+* köprü yaml dosyası yaz
+* köprüyü çalıştır
 
 <details> 
     <summary>
