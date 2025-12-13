@@ -6,7 +6,7 @@
 **3. [Diferansiyel Sürüş Plugini Eklenmesi](#hid-3)**
 **4. [Klavye Kontrol (teleop keyboard)](#hid-4)**
 **5. [Lidar Sensörünün Eklenmesi](#hid-5)**
-**6. [Genel Launcher Paket Düzenlemesi](#hid-6)**
+**6. [Dünya Ve Model Ekleme](#hid-6)**
 **7. [Odometri Plugini ve ROS2 Entegrasyonu](#hid-7)**
 **8. ['slam_toolbox' İle Haritalama]()**
 **9. ['nav2' İle Haritalama Çalışması]()**
@@ -890,14 +890,209 @@ Gazebo'yu başlatacak ve robotu spawn edecek bir launcher ayarlayın. Robot'un R
 
 </details>
 
-<details> 
+<!-- <details> 
     <summary>
         Çözümü görmek için tıklayın.
-    </summary>
+    </summary> -->
 
-    ayıp :(
+Önceki launch dosyamızı kopyalayıp yapıştıralım. İsmini ise `gazebo.launch.py` olarak değiştirelim.
 
-</details>
+```python
+import os
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.substitutions import Command
+from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
+
+PKG_NAME: str = "btkamr_description"
+
+def generate_launch_description():
+    pkg_share = get_package_share_directory(PKG_NAME)
+    urdf_path = os.path.join(pkg_share, "urdf", "main.urdf.xacro")
+    robot_desc = ParameterValue(Command(["xacro ", urdf_path]), value_type=str) # boşluk önemli xacro' '
+
+    return LaunchDescription([
+        Node(
+            package="robot_state_publisher",
+            executable="robot_state_publisher",
+            parameters=[{"robot_description": robot_desc}]
+        ),
+        Node(
+            package="joint_state_publisher_gui",
+            executable="joint_state_publisher_gui"
+        ),
+        Node(
+            package="rviz2",
+            executable="rviz2"
+        ),
+    ])
+```
+
+`joint_state_publisher_gui` düğümünü başlatan kodu silelim. Çünkü artık joint durumlarını biz belirlemeyeceğiz simülasyonda ne ise onu kabul edeceğiz.
+
+Launch dosyamızdan şu kod bloğunu çıkarıyoruz:
+
+```python
+Node(
+    package="joint_state_publisher_gui",
+    executable="joint_state_publisher_gui"
+),
+```
+
+<br/>
+
+Şimdi bizden istenenleri yapmaya başlayabiliriz.
+
+Gazeboyu başlatmamız lazım. Bunun için `ros_gz_sim` paketinin `gz_sim.launch.py` ismindeki launcher'ını kullanabiliriz.
+
+Launch dosyamızın import bölümüne şunu ekleyelim.
+
+```python
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+```
+<br/>
+
+Launch dosyamızın diğer düğümleri başlattığımız yere şunu ekleyelim.
+
+```python
+IncludeLaunchDescription(
+    PythonLaunchDescriptionSource(
+        os.path.join(
+            get_package_share_directory('ros_gz_sim'),
+            'launch',
+            'gz_sim.launch.py'
+        )
+    ),
+    launch_arguments={
+        'gz_args': ['-r -v 4 ', "empty.sdf"] #cli'dan çalışırken de verebileceğimiz argümanlar
+    }.items()
+),
+```
+
+<br/>
+
+Şimdi bir test edelim. Bir sıkıntı yoksa devam edelim.
+
+Robotumuzu simülasyonda spawn etmemiz gerekiyor. Bunun için `ros_gz_sim` paketinin `create` executable'ını kullanabiliriz.
+
+Launch dosyamıza şunu ekleyelim.
+
+```python
+Node(
+    package='ros_gz_sim',
+    executable='create',
+    parameters=[{'topic': 'robot_description'}],
+),
+```
+<br/>
+
+Şimdi bir test edelim. Bir sıkıntı yoksa devam edelim.
+
+Joint state publisher plugin'i eklememiz gerekiyor. 
+
+`urdf` klasörümüze, `g_plugins.urdf.xacro` isminde bir dosya açalım. Bundan sonra pluginlerimizi bu dosyada ekleyeceğiz.
+
+Bu dosyanın içeriğini oluşturalım:
+
+```xml
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="btkamr">
+
+    <gazebo>
+        <plugin 
+            filename="gz-sim-joint-state-publisher-system"
+            name="gz::sim::systems::JointStatePublisher"
+        >
+            <!-- Tüm jointlerin yayımlanmasını istediğimizden joint_name belirtmedik -->
+            
+            <!-- Yayınlanacak topic ismi -->
+            <topic>btkamr/joint_states</topic>
+        </plugin>  
+    </gazebo>
+
+</robot>
+```
+
+<br/>
+
+Bu dosyayı `main.urdf.xacro` dosyamızda `include` edelim.
+
+```xml
+<xacro:include filename="./g_plugins.urdf.xacro" />
+```
+
+<br/>
+
+Şimdi bir daha test edelim. Launcher'ımızı çalıştırdıktan sonra terminalimizden Gazebo topic'lerini kontrol edelim
+
+```bash
+gz topic -l
+```
+
+Eğer `/btkamr/joint_states` isminde bir çıktı göremiyorsak bir şeyleri yanlış yapmışız demektir. Yoksa devam edelim.
+
+Artık Gazebo joint durumlarını `/btkamr/joint_states` topic'inden yayımlıyor. Ancak bizim buna ROS2 tarafında ihtiyacımız var. O yüzden bir köprü oluşturmamız lazım.
+
+Bunun için `ros_gz_bridge` paketinin `parameter_bridge` executable'ını kullanabiliriz. Bunun için de önce bir konfigürasyon dosyası oluşturalım.
+
+`config` isminde bir klasör açalım. Bu klasörü de `CMakeList.txt` dosyasında share klasörüne taşınması için ayarlama yapalım.
+
+`config` klasörünün içine `gz_bridge.yaml` isminde bir dosya açalım ve içine şunu yazalım.
+
+```yaml
+# - ros_topic_name: "<ROS tarafındaki topic ismi>"
+#   gz_topic_name: "<Gazebo tarafındaki topic ismi>"
+#   ros_type_name: "<verinin ROS tarafındaki tipi>"
+#   gz_type_name: "<verinin Gazebo tarafındaki tipi>"
+#   direction: <köprünün yönü>
+
+- ros_topic_name: "joint_states"
+  gz_topic_name: "btkamr/joint_states"
+  ros_type_name: "sensor_msgs/msg/JointState"
+  gz_type_name: "gz.msgs.Model"
+  direction: GZ_TO_ROS 
+```
+
+<br/>
+
+Launcher'da bu dosyayı referans vererek köprüyü başlatalım.
+
+Dosyanın yolunu bulup bir değişkene atalım.
+
+```python
+gz_bridge_cfg_file = os.path.join(
+    get_package_share_directory(),
+    "config",
+    "gz_bridge.yaml"
+)
+```
+
+<br/>
+
+Şu düğümü de başlatalım
+
+```python
+Node(
+    package='ros_gz_bridge',
+    executable='parameter_bridge',
+    parameters=[{'config_file': gz_bridge_cfg_file}],
+),
+```
+
+<br/>
+
+Şimdi test edelim. RViz'de robot modeli görünümünde herhangi bir sıkıntı yoksa köprümüz doğru çalışıyordur.
+
+
+Dosyaların son halleri:
+
+`gazebo.launch.py`
+
+
+<!-- </details> -->
 
 <h1 id="hid-3">3. Diferansiyel Sürüş Plugininin Eklenmesi</h1>
 
@@ -938,8 +1133,11 @@ Robotunuza bir LiDAR sensörü ekleyin ve RViz'de görüntüleyin
 
 </details>
 
-<h1 id="hid-6">6. Genel Launcher Paket Düzenlemesi</h1>
 
+
+<h1 id="hid-6">6. Odometri Plugini ve ROS2 Entegrasyonu</h1>
+
+Robotunuzun URDF'ine bir odometry publisher plugini ekleyin ve RViz'de gözlemleyin.
 
 <details> 
     <summary>
@@ -950,10 +1148,24 @@ Robotunuza bir LiDAR sensörü ekleyin ve RViz'de görüntüleyin
 
 </details>
 
+<h1 id="hid-6">7. Dünya Ve Model Ekleme</h1>
 
-<h1 id="hid-7">7. Odometri Plugini ve ROS2 Entegrasyonu</h1>
 
-Robotunuzun URDF'ine bir odometry publisher plugini ekleyin ve RViz'de gözlemleyin.
+Kendimize ait bir model ve dünya oluşturalım.
+
+* `worlds` ve `models` isminde klasör oluşturun.
+
+* `CMakeLists.txt` dosyasını düzenleyin, bu klasörlerin de `share` klasörüne taşınmasını sağlayın.
+
+* `models` klasörünün içine `my_model` isminde bir model oluşturun.
+
+* `worlds` klasörünün içinde `my_world.sdf` isminde bir dünya oluşturun. 
+
+* Oluşturduğunuz dünyada, oluşturduğunuz modeli kullanın.
+
+* Launch dosyanızı düzenleyin.
+
+* Çalıştırıp deneyimleyin.
 
 <details> 
     <summary>
