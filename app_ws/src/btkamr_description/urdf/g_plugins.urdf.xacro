@@ -36,6 +36,23 @@
 
 	</plugin>
 
+	<plugin
+		filename="gz-sim-odometry-publisher-system"
+		name="gz::sim::systems::OdometryPublisher"
+	>
+		<!-- Odometry'nin yayımlanacağı topic -->
+		<odom_topic>btkamr/odom</odom_topic>
+
+		<!-- Odometry frame'in ismi -->
+		<odom_frame>odom_frame</odom_frame>
+		
+		<!-- Odom frame'in yapışacağı frame-->
+		<robot_base_frame>base_footprint</robot_base_frame>
+
+		<!-- Yayım sıklığı -->
+		<odom_publish_frequency>10</odom_publish_frequency>
+	</plugin>
+
 </gazebo>
 
 
