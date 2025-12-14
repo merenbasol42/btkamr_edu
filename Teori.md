@@ -1385,51 +1385,53 @@ Yapılması gereken tek şey:
 
 ```xml
 <sensor name="gpu_lidar" type="gpu_lidar">
-  <!-- Sensörün modele göre konumu -->
-  <pose>0 0 0 0 0 0</pose>
+    <!-- Sensörün modele göre konumu -->
+    <pose>0 0 0 0 0 0</pose>
 
-  <!-- Yayınlanacak ROS/Gazebo topic adı -->
-  <topic>lidar/scan</topic>
+    <!-- Yayınlanacak ROS/Gazebo topic adı -->
+    <topic>lidar/scan</topic>
 
-  <!-- Saniyede 10 kez ölçüm üret -->
-  <update_rate>10</update_rate>
+    <!-- Saniyede 10 kez ölçüm üret -->
+    <update_rate>10</update_rate>
 
-  <!-- GPU tabanlı ray sensor yapılandırması -->
-  <ray>
-    <scan>
-      <horizontal>
-        <!-- Kaç adet ışın gönderileceği -->
-        <samples>640</samples>
+    <!-- GPU tabanlı ray sensor yapılandırması -->
+    <ray>
+        <scan>
+        <horizontal>
+            <!-- Kaç adet ışın gönderileceği -->
+            <samples>640</samples>
 
-        <!-- Işın çözünürlüğü (1 = birebir, 2 = her 2 ışında 1 hesaplama) -->
-        <resolution>1</resolution>
+            <!-- Işın çözünürlüğü (1 = birebir, 2 = her 2 ışında 1 hesaplama) -->
+            <resolution>1</resolution>
 
-        <!-- Taramanın sol sınırı -->
-        <min_angle>-1.57</min_angle>
+            <!-- Taramanın sol sınırı -->
+            <min_angle>-1.57</min_angle>
 
-        <!-- Taramanın sağ sınırı -->
-        <max_angle>1.57</max_angle>
-      </horizontal>
-    </scan>
+            <!-- Taramanın sağ sınırı -->
+            <max_angle>1.57</max_angle>
+        </horizontal>
+        </scan>
 
-    <!-- Mesafe ölçüm parametreleri -->
-    <range>
-      <!-- Sensörün minimum algılama mesafesi -->
-      <min>0.08</min>
+        <!-- Mesafe ölçüm parametreleri -->
+        <range>
+        <!-- Sensörün minimum algılama mesafesi -->
+        <min>0.08</min>
 
-      <!-- Maksimum algılama mesafesi -->
-      <max>15.0</max>
+        <!-- Maksimum algılama mesafesi -->
+        <max>15.0</max>
 
-      <!-- Mesafe çözünürlüğü -->
-      <resolution>0.01</resolution>
-    </range>
-  </ray>
+        <!-- Mesafe çözünürlüğü -->
+        <resolution>0.01</resolution>
+        </range>
+    </ray>
 
-  <!-- Veriyi kaydedilebilir hâle getirmek için -->
-  <always_on>true</always_on>
+    <!-- Veriyi kaydedilebilir hâle getirmek için -->
+    <always_on>true</always_on>
 
-  <!-- Gazebo GUI’de lazer tarama çizgilerini göster -->
-  <visualize>true</visualize>
+    <!-- Gazebo GUI’de lazer tarama çizgilerini göster -->
+    <visualize>true</visualize>
+
+    <gz_frame_id>lidar</gz_frame_id> 
 </sensor>
 ```
 

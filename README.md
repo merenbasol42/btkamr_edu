@@ -1,8 +1,7 @@
 # btkamr_edu
 
-* gazebo.launch.py dosyası oluştur
-* gazeboyu başlat
-* robotu gazeboda spawn et
-* plugin ekle joint state pbulisher
-* köprü yaml dosyası yaz
-* köprüyü çalıştır
+- ros_topic_name: /clock
+  gz_topic_name: /clock
+  ros_type_name: rosgraph_msgs/msg/Clock
+  gz_type_name: gz.msgs.Clock
+  direction: GZ_TO_ROS
