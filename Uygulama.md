@@ -1160,6 +1160,11 @@ Robotunuzu, ROS2 ile yazılmış bir klavye kontrol düğümü ile hızını kon
 * Klavyeden W,A,S,D veya yön tuşlarını okuyun
 * Bu tuşların karşılıklarına göre `cmd_vel` topic'ine mesaj gönderin.
 
+---
+
+* Bir python paketi oluşturun ismi `btkamr_tools` 
+* Bir tane betik oluşturun ismi de `teleop_keyboard.py`
+
 
 <details> 
     <summary>
