@@ -12,6 +12,7 @@
         <topic>btkamr/joint_states</topic>
     </plugin>  
 
+
 	<plugin
 		filename="gz-sim-diff-drive-system"
 		name="gz::sim::systems::DiffDrive"
@@ -27,12 +28,14 @@
 		<right_joint>base_TO_wh_r</right_joint>
 
 		<!-- Tahrik tekerlekleri arasındaki mesafe -->
+		<!-- Bir tekerin, base_link'e olan uzaklığının iki katı -->
 		<wheel_separation>${(chasis_len_y / 2.0 + wh_thick / 2.0 + wh_chasis_gap) * 2}</wheel_separation>
 
 		<!-- Teker yarıçapı -->
 		<wheel_radius>${wh_radius}</wheel_radius>
 
 	</plugin>
+
 </gazebo>
 
 
