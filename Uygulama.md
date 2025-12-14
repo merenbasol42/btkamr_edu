@@ -881,19 +881,12 @@ Gazebo'yu başlatacak ve robotu spawn edecek bir launcher ayarlayın. Robot'un R
 * köprü yaml dosyası yaz
 * köprüyü çalıştır
 
-<details> 
-    <summary>
-        İpucu için tıklayın.
-    </summary>
-
-    Jointler görünmüyor çünkü jointi publishleyen yok :(
-
 </details>
 
-<!-- <details> 
+<details> 
     <summary>
         Çözümü görmek için tıklayın.
-    </summary> -->
+    </summary>
 
 Önceki launch dosyamızı kopyalayıp yapıştıralım. İsmini ise `gazebo.launch.py` olarak değiştirelim.
 
@@ -1092,7 +1085,7 @@ Dosyaların son halleri:
 `gazebo.launch.py`
 
 
-<!-- </details> -->
+</details>
 
 <h1 id="hid-3">3. Diferansiyel Sürüş Plugininin Eklenmesi</h1>
 
@@ -1103,13 +1096,70 @@ Robotunuzun URDF dosyasına diferansiyel sürüş plugini ekleyin ve Gazebo'da t
         Çözümü görmek için tıklayın.
     </summary>
 
-    ayıp :(
+`g_plugins.urdf.xacro` dosyasında `gazebo` etiketleri arasına şu plugini de ekleyelim.
+
+```xml
+<plugin
+    filename="gz-sim-diff-drive-system"
+    name="gz::sim::systems::DiffDrive"
+>
+
+    <!-- Hız emirlerinin alınacağı topic -->
+    <topic>btkamr/cmd_vel</topic>
+
+    <!-- Sol teker jointi -->
+    <left_joint>base_TO_wh_l</left_joint>
+    
+    <!-- Sağ teker jointi -->
+    <right_joint>base_TO_wh_r</right_joint>
+
+    <!-- Tahrik tekerlekleri arasındaki mesafe -->
+    <!-- Bir tekerin, base_link'e olan uzaklığının iki katı -->
+    <wheel_separation>${(chasis_len_y / 2.0 + wh_thick / 2.0 + wh_chasis_gap) * 2}</wheel_separation>
+
+    <!-- Teker yarıçapı -->
+    <wheel_radius>${wh_radius}</wheel_radius>
+
+</plugin>
+```
+
+<br/>
+
+Test için Gazebo'dan Teleop'u açalım kontrol edelim.
+
+Eğer doğru çalıştıysa bunun için de bir köprü ekleyelim
+
+`gz_bridge.yaml` dosyasına şunu ekleyelim
+
+```yaml
+- ros_topic_name: "cmd_vel"
+  gz_topic_name: "btkamr/cmd_vel"
+  ros_type_name: "geometry_msgs/msg/Twist"
+  gz_type_name: "gz.msgs.Twist"
+  direction: ROS_TO_GZ
+```
+
+Çalıştıralım ve sonrasında ros2 mesajı göndererek kontrol edelim
+
+```bash
+ros2 topic pub /cmd_vel geometry_msgs/msg/Twist \
+"{linear: {x: 0.5, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.3}}"
+```
+
+Sola doğru eğik hareket ediyor olması lazım.
+Bir çember çizmeli.
+
+Uygulama tamamlanmıştır.
 
 </details>
 
 <h1 id="hid-4">4. Klavye Kontrol (teleop)</h1>
 
 Robotunuzu, ROS2 ile yazılmış bir klavye kontrol düğümü ile hızını kontrol edin.
+
+* Klavyeden W,A,S,D veya yön tuşlarını okuyun
+* Bu tuşların karşılıklarına göre `cmd_vel` topic'ine mesaj gönderin.
+
 
 <details> 
     <summary>
@@ -1118,11 +1168,24 @@ Robotunuzu, ROS2 ile yazılmış bir klavye kontrol düğümü ile hızını kon
 
     ayıp :(
 
+
+
+
+<br/>
+
+
+
 </details>
 
-<h1 id="hid-5">5. Lidar Sensörünün Eklenmesi</h1>
+<h1 id="hid-5">5. LiDAR Sensörünün Eklenmesi</h1>
 
 Robotunuza bir LiDAR sensörü ekleyin ve RViz'de görüntüleyin
+
+* `urdf` klasörünüze bir `sensor_extensions.urdf.xacro` isminde bir urdf dosyası açın.
+* Bu dosyada LiDAR için bir link ve onu `chasis` linkine bağlayacak joint oluşturun.
+* Genel sensör pluginini ekleyin.
+* Eklediğiniz LiDAR link'ini Gazebo'ya sensör olarak tanıtın.
+* RViz'de gözlemlemek için `LaserScan` isimli plugini ekleyin *(program üzerinden)*.
 
 <details> 
     <summary>
@@ -1138,6 +1201,12 @@ Robotunuza bir LiDAR sensörü ekleyin ve RViz'de görüntüleyin
 <h1 id="hid-6">6. Odometri Plugini ve ROS2 Entegrasyonu</h1>
 
 Robotunuzun URDF'ine bir odometry publisher plugini ekleyin ve RViz'de gözlemleyin.
+
+* `g_plugins.urdf.xacro` dosyasına odometry publisher plugini ekleyin.
+
+* `gz_bridge.yaml` dosyasına odometry mesajı için köprü ekleyin
+
+* Odometri'yi frame olarak da göstermek için bir düğüm oluşturun. Bu düğüm odometri mesajlarına abone olsun ve bunları transformlara dönüştürsün.
 
 <details> 
     <summary>

@@ -1805,16 +1805,7 @@ Bu yöntemde model, world dosyası içinde mutlak (absolute) dosya yolu ile ça�
 </sdf>
 ```
 
-<br/>
 
-Örnek model klasör yapısı:
-
-```
-my_robot/
- ├── model.sdf
- ├── model.config
- └── meshes/
-```
 
 * **Artısı:** Hızlı ve basit
 * **Eksisi:** Taşınabilir değildir, farklı sistemlerde path kırılır
@@ -1899,7 +1890,7 @@ Böylece world dosyasında şu şekilde kullanılabilir:
   <world name="default">
 
     <include>
-      <uri>model://my_robot</uri>
+      <uri>models://my_robot</uri>
       <pose>0 0 0 0 0 0</pose>
     </include>
 
@@ -1931,13 +1922,13 @@ Böylece world dosyasında şu şekilde kullanılabilir:
 <br/>
 <br/>
 
-<h1 id="hid-5">Haritalama (slam_toolbox)</h1>  
+<h1 id="hid-5">5. Haritalama (slam_toolbox)</h1>  
 
 <br/>
 <br/>
 <br/>
 
-<h1 id="hid-6">Navigasyon (nav2)</h1>  
+<h1 id="hid-6">6. Navigasyon (nav2)</h1>  
 
 <br/>
 <br/>
