@@ -1926,6 +1926,562 @@ Böylece world dosyasında şu şekilde kullanılabilir:
 
 <h1 id="hid-5">5. Haritalama (slam_toolbox)</h1>  
 
+Haritalama, sanki öyle olmasa da aslında hayatımızın oldukça içindedir. Bulunduğumuz çevrede gezindikçe çeşitli cisimlerin kendimize olan uzaklıklarını gözlerimizle algılarken, arka planda da zihinsel bir harita oluştururuz. Örneğin yeni bir yere taşındığınızda, gün geçtikçe sokaklar, marketler ve yollar kafanızda birleşir; bir süre sonra gözünüz kapalı bile orada gezebilecek hale gelirsiniz. Birisi size “şu markete git” dediğinde, o noktaya giden yolu zihinsel haritanız sayesinde kolayca bulursunuz.
+
+Robotikte haritalama da temelde aynı fikre dayanır. Robot, üzerinde bulunan sensörler (LIDAR, kamera, IMU vb.) aracılığıyla çevresini algılar ve bu algıları matematiksel hesaplamalarla sayısal bir haritaya dönüştürür. Kısaca bir tanım yapmak gerekirse:
+
+> **Haritalama**, bir robotun çevresini sensör verileri ve konum tahmini kullanarak sayısal bir temsil haline getirmesidir.
+
+Bu bölümde ROS2 ekosisteminde yaygın olarak kullanılan **`slam_toolbox`** paketi ile haritalama sürecini ele alacağız.
+
+<br/>
+
+<h2 id="hid-5-1">5.1. `slam_toolbox` Nedir?</h2>
+
+`slam_toolbox`, ROS2 ekosistemi için geliştirilmiş, 2D SLAM (Simultaneous Localization and Mapping) gerçekleştiren modern bir yazılım paketidir. Temel amacı, bir mobil robotun aynı anda kendi pozisyonunu tahmin etmesini (localization) ve çevresinin haritasını oluşturmasını (mapping) sağlamaktır.
+
+ROS1 dünyasında uzun yıllar yaygın olarak kullanılan `gmapping` paketine benzer bir ihtiyacı karşılar, ancak ROS2 mimarisine uygun şekilde yeniden tasarlanmış ve özellikle uzun süreli çalışmalarda daha kararlı olacak şekilde geliştirilmiştir. `slam_toolbox`, ROS2’nin Navigation2 (`nav2`) ekosistemiyle doğal olarak uyumludur.
+
+#### SLAM Nedir ve Neyi Çözer?
+
+Bir mobil robot için iki temel soru vardır.
+
+* Robot şu anda nerede? (Localization)
+* Çevrenin haritası nasıl? (Mapping)
+
+Bu iki soru birbirini doğrudan etkiler.
+
+* Harita yoksa robotun nerede olduğunu söylemek zordur.
+* Robotun nerede olduğunu bilmeden de haritayı doğru çizmek zordur.
+
+SLAM yaklaşımı bu iki problemi aynı anda çözmeye çalışır. `slam_toolbox` bunu 2D LIDAR ve TF dönüşümlerini kullanarak gerçekleştirir.  
+
+<br/>  
+
+<h2 id="hid-5-2">5.2. `slam_toolbox` Çalışma Prensibi</h2>
+
+`slam_toolbox` temel olarak şunları kullanır.
+
+* 2D LIDAR verisi (`sensor_msgs/LaserScan`)
+* TF dönüşümleri (`map → odom → base_link → laser`)
+
+Bu bilgilerle bir occupancy grid map (doluluk haritası) üretir. Bu, ROS tabanlı 2D haritalamada en yaygın harita gösterimidir.
+
+### Occupancy Grid Map Nedir?
+
+Occupancy grid map, ortamın düzenli hücrelere bölündüğü bir harita modelidir.
+
+* Her hücre bir alan parçasını temsil eder.
+* Hücre değeri o alanın dolu (engel), boş veya bilinmiyor olma ihtimalini ifade eder.
+
+LIDAR ışınları bir noktaya çarpıyorsa o hücre zamanla “dolu”ya yaklaşır.
+LIDAR ışınları bir alandan geçip çarpmıyorsa o alan “boş”a yaklaşır.
+Robot hiç görmediyse “bilinmiyor” kalır.
+
+### Döngüsel İşleyiş (Robot Hareket Ederken)
+
+Robot hareket ettikçe `slam_toolbox` şu döngüyü tekrarlar.
+
+1. LIDAR taraması alınır.
+2. Yeni tarama, mevcut harita veya önceki taramalarla hizalanır (scan matching).
+3. Hizalama sonucunda robotun pozisyon tahmini düzeltilir.
+4. Düzeltilen pozisyonla ölçümler haritaya işlenir.
+
+Bu süreç süreklidir. Sistem iyi ayarlanmışsa hem robot pozisyonu hem de harita zamanla daha tutarlı hale gelir.
+
+### Temel Kavramlar
+
+#### 1. Pose Graph (Poz Grafiği)
+
+`slam_toolbox`, robotun yolunu “düğümler” ve bu düğümler arasındaki ilişkiler olarak temsil eder.
+
+* Düğüm: Robotun belirli bir anda tahmin edilen pozu
+* Kenar: İki düğüm arasındaki göreli hareket (odometri) veya sensör tabanlı eşleşme (scan matching)
+
+Bu yapı, uzun süreli haritalamada biriken hataları düzeltmek için güçlüdür.
+
+#### 2. Scan Matching
+
+Yeni gelen LIDAR taramasının, harita veya geçmiş taramalarla en iyi örtüşeceği poz bulunur.
+
+* Odometri hatalıysa scan matching robotun pozunu düzeltir.
+* Bu adım lokalizasyon doğruluğu açısından kritiktir.
+
+#### 3. Loop Closure (Döngü Kapanışı)
+
+Robot daha önce geçtiği bir bölgeye tekrar geldiğinde sistem bunu fark ederse “loop closure” oluşur.
+
+* Drift (sürüklenme) nedeniyle zamanla biriken hatalar azaltılır.
+* Harita global olarak yeniden tutarlı hale getirilir.
+
+#### 4. Optimization
+
+Pose graph üzerinde yapılan optimizasyon, düğümleri en tutarlı hale getirecek şekilde yeniden düzenler.
+
+* Uzun koridorlar, geniş alanlar ve uzun süreli sürüşlerde fark yaratır.
+
+<br/>
+
+<h2 id="hid-5-3">5.3. `slam_toolbox` Ne Sunuyor?</h2>
+
+### a. `slam_toolbox` Modları
+
+`slam_toolbox` pratikte iki ana amaç için kullanılır.
+
+* Mapping: İlk kez harita çıkarma
+* Localization: Hazır haritada konumlama
+
+Bu iki amaç hem parametreleri hem de çalışma beklentisini değiştirir.
+
+#### 1. Mapping Modu (Haritalama)
+
+Mapping modunda hedef yeni bir harita üretmektir.
+
+* Robot ortamı gezer.
+* Harita anlık olarak büyür ve güncellenir.
+* Loop closure ile harita zamanla düzelir.
+
+Haritalama tamamlandığında çıktı olarak genellikle iki şey elde edilir.
+
+* Occupancy grid haritası (ör. `map.pgm` ve `map.yaml`)
+* Pose-graph / slam veri yapısı (paketin sağladığı format)
+
+#### 2. Localization Modu (Konumlama)
+
+Localization modunda hedef harita üretmek değil, var olan haritada robotun pozunu bulmaktır.
+
+* Harita sabittir.
+* Robotun pozisyonu LIDAR ile haritaya hizalanarak sürekli güncellenir.
+
+Bu mod, Nav2 ile “hazır haritada gezinme” senaryosunun temelidir.
+
+### b. Online ve Offline Çalışma
+
+`slam_toolbox` hem gerçek zamanlı hem de kaydedilmiş veri üzerinden çalışabilir.
+
+#### 1. Online Mod
+
+Online modda robot çalışırken SLAM yürür.
+
+* LIDAR verisi canlı gelir.
+* TF dönüşümleri canlı akar.
+* Harita anlık üretilir veya lokalizasyon anlık yapılır.
+
+En yaygın kullanım budur.
+
+#### 2. Offline Mod
+
+Offline modda SLAM, daha önce kaydedilmiş bir `rosbag` üzerinden çalıştırılır.
+
+* Algoritma testi
+* Parametre ayarı
+* Aynı veriyi tekrar tekrar çalıştırarak karşılaştırma
+
+Offline çalışma, sahaya çıkmadan önce doğru parametre kombinasyonunu bulmak için değerlidir.
+
+### c. Sync ve Async Düğümler
+
+`slam_toolbox` iki temel çalışma biçimi sunar.
+
+* Senkron (sync): Zaman uyumuna daha sıkı yaklaşır
+* Asenkron (async): Veriyi geldiği anda işler
+
+#### 1. `sync_slam_toolbox_node`
+
+Senkron çalışan SLAM düğümüdür.
+
+* Zaman uyumu daha yüksektir
+* Sonuçlar genelde daha kararlı olur
+* Çoğu gerçek robot uygulaması için önerilir
+
+#### 2. `async_slam_toolbox_node`
+
+Asenkron çalışan SLAM düğümüdür.
+
+* Yüksek frekanslı LIDAR’larda tercih edilebilir
+* CPU yükü artabilir
+* Zaman senkronizasyonu zor olan sistemlerde pratik olabilir
+
+#### 3. Sync ve Async Karşılaştırması
+
+| Özellik           | Sync         | Async                   |
+| ----------------- | ------------ | ----------------------- |
+| Zaman uyumu       | Yüksek       | Daha gevşek             |
+| Kararlılık        | Yüksek       | Orta                    |
+| CPU yükü          | Daha az      | Daha fazla              |
+| Önerilen kullanım | Gerçek robot | Yüksek frekanslı sensör |
+
+Genel öneri.
+
+* Gerçek robot + normal LIDAR: sync tercih edilir
+* Çok yüksek frekanslı sensör veya zaman uyumu zor sistemler: async denenebilir
+
+### d. Harita
+
+2D harita çoğunlukla şu iki dosya ile temsil edilir.
+
+* `map.pgm`: Piksel tabanlı harita görüntüsü
+* `map.yaml`: Harita meta verisi
+
+#### 1. `map.yaml` İçindeki Temel Alanlar
+
+`map.yaml` dosyası harita görüntüsünün nasıl yorumlanacağını söyler.
+
+* `resolution`: Bir pikselin kaç metre olduğu
+* `origin`: Haritanın dünya koordinatındaki başlangıcı (x, y, yaw)
+* `negate`, `occupied_thresh`, `free_thresh`: Piksellerin dolu/boş sayılması için eşikler
+
+Pratikte `nav2_map_server`, bu dosyayı kullanarak haritayı yayınlar.
+
+#### 2. Haritayı Sonradan Nasıl Kullanırım?
+
+Hazır haritada gezinme genellikle şu akışla yapılır.
+
+1. Haritayı `map_server` ile yayınla
+2. Lokalizasyonu başlat (`slam_toolbox` localization veya AMCL gibi)
+3. Nav2’yi çalıştır
+4. Robot hedeflere plan yapıp gider
+
+#### 3. Tipik Senaryo 1: Harita Çıkar ve Kaydet
+
+* `slam_toolbox` mapping modunda çalıştırılır
+* Ortam gezilir
+* Harita kaydedilir
+
+Kaydetme işlemi genellikle `map_saver` ile yapılır.
+
+#### 4. Tipik Senaryo 2: Hazır Haritada Çalıştır
+
+* `map_server` kaydedilmiş haritayı yayınlar
+* `slam_toolbox` localization modunda pozu takip eder
+* Nav2, haritaya göre planlama yapar
+
+Bu senaryoda harita sabit olduğu için amaç harita üretmek değil, doğru ve kararlı poz tahminidir.
+
+<br/>
+
+<h2 id="hid-5-3">5.3. `slam_toolbox` Parametreler</h2>
+
+`slam_toolbox`, ROS2 tabanlı Otonom Mobil Robot (AMR) sistemlerinde 2B eşzamanlı konumlama ve haritalama (SLAM) için yaygın olarak kullanılan, yüksek derecede yapılandırılabilir bir pakettir. Bu bölümde, bir AMR geliştirme sürecinde en kritik ve pratikte ayarlanması gereken parametreler açıklanmaktadır.
+
+Amaç; geliştiricinin hangi parametreyi neden değiştirdiğini bilerek sistemi yapılandırabilmesini sağlamaktır. Nadiren kullanılan veya ileri seviye parametreler bu bölüm dışında bırakılmıştır.
+
+### 1. Solver (Optimizasyon) Parametreleri
+
+Bu parametreler, pose-graph optimizasyonunda kullanılan sayısal çözücüleri belirler.
+
+#### `solver_plugin`
+
+Kullanılacak doğrusal olmayan optimizasyon kütüphanesini tanımlar.
+
+* `solver_plugins::CeresSolver` (önerilen)
+* `solver_plugins::G2oSolver`
+* `solver_plugins::SpaSolver`
+
+AMR uygulamalarında `CeresSolver`, kararlılık ve performans açısından varsayılan ve önerilen çözümdür.
+
+#### `ceres_linear_solver`
+
+Ceres içinde kullanılan lineer çözücü türü.
+
+* `SPARSE_NORMAL_CHOLESKY` (varsayılan)
+* `SPARSE_SCHUR`
+* `ITERATIVE_SCHUR`
+* `CGNR`
+
+Büyük haritalarda veya yoğun loop closure durumlarında bu parametre performansı doğrudan etkiler.
+
+#### `ceres_preconditioner`
+
+Lineer çözücü ile birlikte kullanılan önkoşullayıcı (preconditioner) seçimi.
+
+* `JACOBI` (varsayılan)
+* `IDENTITY` (yok)
+* `SCHUR_JACOBI`
+
+#### `ceres_trust_strategy`
+
+Trust-region optimizasyon stratejisi.
+
+* `LEVENBERG_MARQUARDT` (varsayılan)
+* `DOGLEG`
+
+#### `ceres_loss_function`
+
+Aykırı ölçümlerin (outlier) optimizasyona etkisini azaltmak için kullanılan kayıp fonksiyonu.
+
+* `None` → Saf kare hata (squared loss)
+* `HuberLoss` → Orta seviyede gürültülü lidarlar için önerilir
+* `CauchyLoss` → Çok gürültülü veriler için
+
+Gerçek dünya AMR sistemlerinde gürültülü lidar veya hatalı odometri durumlarında `HuberLoss` kullanımı yaygındır.
+
+#### `mode`
+
+SLAM sisteminin çalışma modu.
+
+* `mapping` → Harita oluşturma
+* `localization` → Var olan haritada konumlama
+
+### 2. Frame ve Topic Yapılandırması
+
+Bu parametreler TF ağacının doğruluğu açısından kritik öneme sahiptir. Frame isimleri sistem genelinde tutarlı olmalı ve lidar verisi doğru TF zinciriyle `base_frame`e bağlanmalıdır.
+
+#### `map_frame`
+
+Harita koordinat çerçevesi. Genellikle `map` olarak ayarlanır.
+
+#### `odom_frame`
+
+Odometri çerçevesi. Tekerlek odometrisi, IMU veya fusion odometrisi bu frame üzerinden yayınlanır.
+
+#### `base_frame`
+
+Robot gövdesinin referans frame’i. Örn: `base_link`.
+
+#### `scan_topic`
+
+Lidar verisinin alındığı ROS topic.
+
+Dikkat: Mutlaka tam yol kullanılmalıdır. Örnek: `/scan`.
+
+### 3. Harita Üretimi ve Yayınlama Parametreleri
+
+#### `resolution`
+
+2B occupancy grid haritasının çözünürlüğü (metre/hücre).
+
+* Küçük değer → Daha detaylı harita, daha fazla hesaplama
+* Büyük değer → Daha hızlı ama daha kaba harita
+
+AMR sistemlerinde tipik değerler 0.03–0.07 m aralığındadır.
+
+#### `map_update_interval`
+
+Occupancy haritasının güncellenme periyodu (saniye). Görselleştirme ve diğer uygulamalar için üretilen map’in yenilenme hızını belirler.
+
+#### `transform_publish_period`
+
+`map → odom` dönüşümünün yayınlanma periyodu.
+
+* `0` → TF yayını kapalı
+
+### 4. Performans ve Veri Akışı
+
+#### `scan_queue_size`
+
+Kuyrukta tutulacak lidar mesajı sayısı.
+
+Asenkron modda her zaman `1` önerilir. Daha büyük değerler gecikmeye ve eski ölçümlerin kullanılmasına neden olabilir.
+
+#### `throttle_scans`
+
+Senkron modda kaç scan’de bir işlem yapılacağını belirler.
+
+Performans sorunu yaşandığında artırılabilir, fakat aşırı artırmak harita kalitesini düşürebilir.
+
+#### `minimum_time_interval`
+
+Senkron modda iki scan arasında işlenmesi gereken minimum süre. İşlemci yükünü kontrol etmeye yardımcı olur.
+
+### 5. Hareket Eşiği Parametreleri
+
+Bu parametreler, gereksiz scan işlenmesini ve aşırı node eklenmesini engeller. Özellikle yavaş hareket eden AMR’lerde harita stabilitesi için kritik öneme sahiptir.
+
+#### `minimum_travel_distance`
+
+Yeni bir scan’in işlenmesi için gereken minimum doğrusal hareket (metre).
+
+#### `minimum_travel_heading`
+
+Yeni bir scan’in işlenmesi için gereken minimum açısal değişim (radyan).
+
+#### `check_min_dist_and_heading_precisely`
+
+Minimum mesafe veya minimum açı şartının “kesin” kontrol edilip edilmeyeceğini belirler.
+
+Varsayılan davranış çoğu senaryoda yeterlidir. Rotasyon odometrisi zayıfsa hassas kontrol tercih edilebilir.
+
+### 6. Scan Matching Parametreleri
+
+#### `use_scan_matching`
+
+Scan matching’in aktif olup olmadığını belirler.
+
+Pratikte her zaman `true` olmalıdır.
+
+#### `scan_buffer_size`
+
+Bellekte tutulacak scan sayısı.
+
+* Büyük değer → Daha stabil lokalizasyon
+* Küçük değer → Daha düşük bellek kullanımı
+
+#### `scan_buffer_maximum_scan_distance`
+
+Bir scan’in buffer’dan çıkarılması için pozdan maksimum uzaklık. Buffer’da “yakın” ölçümleri tutarak stabilite sağlar.
+
+### 7. Loop Closure Parametreleri
+
+Loop closure, uzun koridorlar ve büyük alanlarda drift’i düzeltmek için kritik mekanizmadır.
+
+#### `do_loop_closing`
+
+Loop closure mekanizmasını etkinleştirir.
+
+Harita kalitesi için önerilen değer `true`’dur.
+
+#### `loop_search_maximum_distance`
+
+Loop closure aranacak maksimum mesafe eşiği. Çok küçükse loop kapanmayabilir, çok büyükse yanlış eşleşme riski artabilir.
+
+#### `loop_match_minimum_response_coarse` ve `loop_match_minimum_response_fine`
+
+Loop closure kabul eşiği.
+
+* Düşük eşik → Yanlış loop riski
+* Yüksek eşik → Loop closure kaçırma riski
+
+Saha verisine göre ayarlanmalıdır.
+
+### 8. Occupancy Map Parametreleri
+
+#### `min_laser_range` ve `max_laser_range`
+
+Harita rasterizasyonunda kullanılacak lidar mesafe sınırları.
+
+#### `min_pass_through`
+
+Bir hücrenin dolu/boş sayılabilmesi için kaç ışının o hücreden “geçmesi” gerektiğini belirler. Gürültülü tekil ışınların haritayı bozmasını engeller.
+
+#### `occupancy_threshold`
+
+Bir hücrenin dolu kabul edilmesi için gerekli “çarpma / geçiş” oranı.
+
+### 9. Sonuç
+
+`slam_toolbox`, doğru yapılandırıldığında AMR sistemleri için yüksek doğrulukta ve kararlı SLAM sağlar. Geliştiricinin öncelikle aşağıdaki parametrelere odaklanması önerilir.
+
+* Frame tanımları (`map_frame`, `odom_frame`, `base_frame`)
+* `scan_topic`
+* `resolution`
+* Hareket eşikleri (`minimum_travel_distance`, `minimum_travel_heading`)
+* Loop closure (`do_loop_closing` ve eşik değerleri)
+* Outlier dayanımı için `ceres_loss_function` (çoğu sistemde `HuberLoss` faydalıdır)
+
+<br/>
+
+<h2 id="hid-5-4">5.4. `slam_toolbox` Genel Kullanım</h2>
+
+### Haritalamayı Başlatma
+
+Robotunuzun:
+
+* `/scan` topic’ine `LaserScan` mesajları yayınlaması
+* Doğru TF ağacına sahip olması
+
+gereklidir.
+
+```bash
+ros2 launch slam_toolbox online_async_launch.py
+```
+
+### Örnek Parametre Dosyası
+
+```yaml
+slam_toolbox:
+  ros__parameters:
+
+    # Plugin params
+    solver_plugin: solver_plugins::CeresSolver
+    ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
+    ceres_preconditioner: SCHUR_JACOBI
+    ceres_trust_strategy: LEVENBERG_MARQUARDT
+    ceres_dogleg_type: TRADITIONAL_DOGLEG
+    ceres_loss_function: None
+
+    # ROS Parameters
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_footprint
+    scan_topic: /scan
+    use_map_saver: true
+    mode: mapping #localization
+
+    # if you'd like to immediately start continuing a map at a given pose
+    # or at the dock, but they are mutually exclusive, if pose is given
+    # will use pose
+    #map_file_name: test_steve
+    # map_start_pose: [0.0, 0.0, 0.0]
+    #map_start_at_dock: true
+
+    debug_logging: false
+    throttle_scans: 1
+    transform_publish_period: 0.02 #if 0 never publishes odometry
+    map_update_interval: 5.0
+    resolution: 0.05
+    max_laser_range: 20.0 #for rastering images
+    minimum_time_interval: 0.5
+    transform_timeout: 0.2
+    tf_buffer_duration: 30.0
+    stack_size_to_use: 40000000 #// program needs a larger stack size to serialize large maps
+    enable_interactive_mode: true
+
+    # General Parameters
+    use_scan_matching: true
+    use_scan_barycenter: true
+    minimum_travel_distance: 0.5
+    minimum_travel_heading: 0.5
+    scan_buffer_size: 10
+    scan_buffer_maximum_scan_distance: 10.0
+    link_match_minimum_response_fine: 0.1  
+    link_scan_maximum_distance: 1.5
+    loop_search_maximum_distance: 3.0
+    do_loop_closing: true 
+    loop_match_minimum_chain_size: 10           
+    loop_match_maximum_variance_coarse: 3.0  
+    loop_match_minimum_response_coarse: 0.35    
+    loop_match_minimum_response_fine: 0.45
+
+    # Correlation Parameters - Correlation Parameters
+    correlation_search_space_dimension: 0.5
+    correlation_search_space_resolution: 0.01
+    correlation_search_space_smear_deviation: 0.1 
+
+    # Correlation Parameters - Loop Closure Parameters
+    loop_search_space_dimension: 8.0
+    loop_search_space_resolution: 0.05
+    loop_search_space_smear_deviation: 0.03
+
+    # Scan Matcher Parameters
+    distance_variance_penalty: 0.5      
+    angle_variance_penalty: 1.0    
+
+    fine_search_angle_offset: 0.00349     
+    coarse_search_angle_offset: 0.349   
+    coarse_angle_resolution: 0.0349        
+    minimum_angle_penalty: 0.9
+    minimum_distance_penalty: 0.5
+    use_response_expansion: true
+    min_pass_through: 2
+    occupancy_threshold: 0.1
+```
+
+### Haritayı Kaydetme
+
+```bash
+ros2 run nav2_map_server map_saver_cli -f my_map
+```
+
+### Pratik İpuçları
+
+* Robotu yavaş ve sabit hızla sürün
+* Ani dönüşlerden kaçının
+* Ortamın mümkün olduğunca statik olmasına dikkat edin
+* TF frame isimlerini mutlaka kontrol edin
+
+
+
 <br/>
 <br/>
 <br/>
