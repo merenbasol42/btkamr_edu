@@ -26,7 +26,7 @@ def generate_launch_description():
     # ---- Launch Arguments ----
     declare_map = DeclareLaunchArgument(
         "map",
-        default_value="/home/meren/Projects/btkamr_edu/app_ws/my_map.yaml",
+        default_value=os.path.join(sim_pkg, "maps", "in_my_house.yaml"),
         description="Full path to map yaml file"
     )
 

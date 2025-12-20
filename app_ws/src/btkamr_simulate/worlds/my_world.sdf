@@ -64,12 +64,16 @@
       </link>
     </model>
 
-    <!-- Kendi modelimizi dahil edelim -->
-    <include>
-      <uri>models://my_model</uri>
-      <name>my_model_instance_1</name>
-      <pose>5 0 1.5 0 0 0</pose>
-    </include>
-  
+    <model name= "modelismi">
+      <pose>0 0 3 0 0 0</pose>
+      <link name="link">
+          <visual name="asda">
+            <geometry>
+              <box size="3 3 3">
+            </geometry>
+          </visual>
+      </link>
+    </model>
+
   </world>
 </sdf>
