@@ -1,9 +1,0 @@
-/home/meren/Projects/btkamr_edu/build/btkamr_description/CMakeFiles/uninstall.dir
-/home/meren/Projects/btkamr_edu/build/btkamr_description/CMakeFiles/btkamr_description_uninstall.dir
-/home/meren/Projects/btkamr_edu/build/btkamr_description/CMakeFiles/test.dir
-/home/meren/Projects/btkamr_edu/build/btkamr_description/CMakeFiles/edit_cache.dir
-/home/meren/Projects/btkamr_edu/build/btkamr_description/CMakeFiles/rebuild_cache.dir
-/home/meren/Projects/btkamr_edu/build/btkamr_description/CMakeFiles/list_install_components.dir
-/home/meren/Projects/btkamr_edu/build/btkamr_description/CMakeFiles/install.dir
-/home/meren/Projects/btkamr_edu/build/btkamr_description/CMakeFiles/install/local.dir
-/home/meren/Projects/btkamr_edu/build/btkamr_description/CMakeFiles/install/strip.dir
