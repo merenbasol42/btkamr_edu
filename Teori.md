@@ -2481,12 +2481,254 @@ ros2 run nav2_map_server map_saver_cli -f my_map
 * TF frame isimlerini mutlaka kontrol edin
 
 
-
 <br/>
 <br/>
 <br/>
 
 <h1 id="hid-6">6. Navigasyon (nav2)</h1>  
+
+
+
+## ROS2 Nav2 Nedir? (Navigation2)
+
+![Image](https://docs.nav2.org/_images/nav2_architecture.png?utm_source=chatgpt.com)
+
+![Image](https://ros2-industrial-workshop.readthedocs.io/en/latest/_images/navigation_overview.png?utm_source=chatgpt.com)
+
+![Image](https://automaticaddison.com/wp-content/uploads/2024/12/go-to-goal-autonomous-navigation.jpg?utm_source=chatgpt.com)
+
+**Nav2 (Navigation2)**, ROS2 tabanlı mobil robotların **bir harita üzerinde konumunu bulması**, **hedef noktaya güvenli şekilde gitmesi** ve **engellerden kaçınması** için kullanılan modern bir navigasyon framework’üdür.
+
+Basitçe Nav2 şu sorulara cevap verir:
+
+1. **Ben neredeyim?** → Localization
+2. **Nereye gideceğim?** → Goal
+3. **Oraya nasıl gideceğim?** → Path Planning
+4. **Yolda engel çıkarsa ne yapacağım?** → Obstacle Avoidance
+
+Nav2, ROS1’deki `move_base`’in ROS2 için yeniden tasarlanmış, daha **modüler**, **plugin tabanlı** ve **behavior-tree destekli** halidir.
+
+---
+
+## Nav2’nin Temel Bileşenleri
+
+Nav2 birkaç ana modülden oluşur:
+
+* **Map Server** → Haritayı sağlar
+* **Localization (AMCL)** → Robotun harita üzerindeki pozisyonunu bulur
+* **Planner** → Global yol planlar
+* **Controller** → Anlık hız komutları üretir
+* **Costmap** → Engellerin temsil edildiği haritalar
+* **Behavior Tree (BT)** → Tüm navigasyon akışını yönetir
+
+Şimdi en kritik parçalara tek tek bakalım.
+
+---
+
+## Harita (Map) ve Map Server Mantığı
+
+![Image](https://user-images.githubusercontent.com/72970001/111869094-eae92f80-897d-11eb-8ad8-7cfb21e23eaf.png?utm_source=chatgpt.com)
+
+![Image](https://global.discourse-cdn.com/nvidia/optimized/4X/0/e/0/0e056bb0c51a23c7fe37e538476c08218acc3927_2_1024x594.png?utm_source=chatgpt.com)
+
+![Image](https://roboticsbackend.com/wp-content/uploads/2023/05/ros2_nav2_rviz2_for_slam-1024x646.png?utm_source=chatgpt.com)
+
+Nav2 genellikle **2D Occupancy Grid Map** kullanır.
+
+* Harita hücrelerden (grid) oluşur
+* Her hücre:
+
+  * **0** → boş
+  * **100** → dolu (duvar/engel)
+  * **-1** → bilinmiyor
+
+Bu harita genellikle:
+
+* **SLAM** ile üretilir (Cartographer, SLAM Toolbox vb.)
+* `map_server` node’u tarafından yayınlanır
+
+> Nav2 harita üretmez, **mevcut haritayı kullanır**.
+
+---
+
+## Localization: AMCL Mantığı (En Önemli Kısım)
+
+![Image](https://www.researchgate.net/publication/334750720/figure/fig11/AS%3A789547382222848%401565254173011/Evolution-of-particles-using-AMCL-top-Augmented-MCL-middle-and-AGM-AMCL-bottom-in.ppm?utm_source=chatgpt.com)
+
+![Image](https://media.licdn.com/dms/image/v2/D5612AQFJOOoM-uXXBw/article-cover_image-shrink_600_2000/article-cover_image-shrink_600_2000/0/1681458098564?e=2147483647\&t=BgJur-hWd6J1NTiVopkMGM2cJqtMRlRs5Gaa2HrK9ho\&v=beta\&utm_source=chatgpt.com)
+
+![Image](https://www.mathworks.com/help/nav/ug/mcl_particle_clusters.png?utm_source=chatgpt.com)
+
+**AMCL (Adaptive Monte Carlo Localization)**, robotun harita üzerindeki pozisyonunu **olasılıksal** olarak tahmin eder.
+
+### AMCL Ne Yapar?
+
+* Robotun pozisyonunu tek bir nokta olarak değil
+* **Bir sürü olası pozisyon (particle)** olarak tutar
+
+Her particle şunu temsil eder:
+
+```
+(x, y, θ)  → robot burada olabilir
+```
+
+---
+
+### AMCL Nasıl Çalışır? (Adım Adım)
+
+#### 1️⃣ Başlangıç (Particles Dağıtımı)
+
+* Haritanın her yerine veya tahmini bir alana particle’lar serpiştirilir
+
+#### 2️⃣ Hareket Modeli (Odometry)
+
+* Robot hareket edince particle’lar da hareket eder
+* Encoder / odom verisi kullanılır
+* Hata payı eklenir (gerçek hayata uygunluk için)
+
+#### 3️⃣ Sensör Modeli (Lidar)
+
+* Robotun Lidar ölçümleri alınır
+* Her particle için:
+
+  * “Bu pozisyonda olsaydım, lidar böyle mi görürdü?” diye bakılır
+* Haritayla en iyi uyuşan particle’lar **daha yüksek ağırlık** alır
+
+#### 4️⃣ Yeniden Örnekleme (Resampling)
+
+* Kötü particle’lar silinir
+* İyi particle’lardan daha fazla kopya üretilir
+
+➡️ Zamanla particle’lar **tek bir bölgede yoğunlaşır**
+➡️ Robotun konumu netleşir
+
+---
+
+### AMCL Neden Güçlü?
+
+✅ Gürültülü sensörlere dayanıklı
+✅ Küçük hataları tolere eder
+❌ Global localization yavaştır
+❌ Harita değişirse zorlanır
+
+---
+
+## Costmap Mantığı (Engeller Nasıl Görülür?)
+
+![Image](https://user-images.githubusercontent.com/119948/64462441-048d9380-d0c6-11e9-9e40-a28c3c39e059.png?utm_source=chatgpt.com)
+
+![Image](https://www.theconstruct.ai/wp-content/uploads/2018/11/ROS-QA-168-What-are-the-differences-between-global-and-local-costmap.png?utm_source=chatgpt.com)
+
+![Image](https://user-images.githubusercontent.com/60094858/110782378-1c744380-8278-11eb-811a-a1e358491331.png?utm_source=chatgpt.com)
+
+Nav2 iki farklı costmap kullanır:
+
+### Global Costmap
+
+* Tüm haritayı kapsar
+* Uzun vadeli yol planlama için
+* Duvarlar, sabit engeller
+
+### Local Costmap
+
+* Robotun etrafındaki küçük alan
+* Lidar ile anlık güncellenir
+* İnsan, sandalye gibi dinamik engeller
+
+**Inflation Layer** sayesinde:
+
+* Engellere çok yaklaşmak “pahalı” hale gelir
+* Robot duvara sürtmez
+
+---
+
+## Path Planning (Planner)
+
+Planner şunu yapar:
+
+> “Şu noktadan hedefe **en mantıklı yolu** bul”
+
+Yaygın planner’lar:
+
+* **NavFn / A*** → Grid tabanlı
+* **Smac Planner** → Daha modern, daha düzgün yollar
+
+Çıktı:
+
+```
+Global Path (waypoint list)
+```
+
+---
+
+## Controller (Yolu Nasıl Takip Eder?)
+
+Controller:
+
+* Global path’i alır
+* Anlık hız komutları üretir:
+
+```
+cmd_vel → (linear.x, angular.z)
+```
+
+Yaygın controller’lar:
+
+* **DWB**
+* **Regulated Pure Pursuit**
+
+Controller local costmap’e bakarak:
+
+* Engel varsa yavaşlar
+* Gerekirse yeniden plan ister
+
+---
+
+## Behavior Tree (Nav2’nin Beyni)
+
+![Image](https://raw.githubusercontent.com/ros-planning/navigation2/foxy-devel/nav2_bt_navigator/doc/parallel_w_recovery.png?utm_source=chatgpt.com)
+
+![Image](https://docs.nav2.org/_images/overall_bt_w_breakdown.png?utm_source=chatgpt.com)
+
+![Image](https://www.researchgate.net/publication/287209460/figure/fig3/AS%3A307954164224000%401450433402639/A-behavior-tree-example-for-the-patrol-application.png?utm_source=chatgpt.com)
+
+Nav2’de tüm akış **Behavior Tree (BT)** ile yönetilir.
+
+Örnek akış:
+
+```
+Goal al
+→ Path planla
+→ Takip et
+→ Engel çıktı mı?
+    → Replan
+→ Başarılıysa bitir
+```
+
+Avantajı:
+
+* Çok esnek
+* Kolay özelleştirilebilir
+* Recovery behavior’lar eklenebilir (geri git, dön, yeniden dene)
+
+---
+
+## Özet: Nav2 + AMCL Büyük Resim
+
+```
+Harita + Lidar
+      ↓
+   AMCL
+ (Ben neredeyim?)
+      ↓
+ Planner
+ (Nereye gideyim?)
+      ↓
+ Controller
+ (Nasıl gideyim?)
+      ↓
+   Robot
+```
 
 <br/>
 <br/>
@@ -3054,6 +3296,7 @@ Dışarıdan bakıldığında mikrodenetleyicideki kod, “küçük bir ROS2 nod
 * Hesaplanan odometri tekrar micro-ROS üzerinden ROS2’ye `nav_msgs/Odometry` olarak geri gönderilir.
 
 Bu yapı sayesinde hem **ROS2 ekosistemini bozmadan** çalışırız, hem de mikrodenetleyici dünyasının avantajlarını (gerçek zamanlılık, düşük güç tüketimi, donanıma yakın kontrol) kullanmaya devam ederiz.
+dometri hesaplaması AMR için en dikkat edilmesi gereken noktalardan biridir. zira haritalama ve navigasyon zaten test edilmiş ve doğru çalıştığından emin olunan paketler. Ancak bu iki paketin çıktısının rezil ya da vezir olmasını sağlayan şey odometridir. Eğer robotunuz kötü bir harita çıkarıyorsa çok büyük ihtimalle odometriniz düzgün değildir. Encoder tipi, alt sistemde bloklanma, odometri yapan düğüm ya da matematikte bir hatanız olabilir. Ayrıca hesaplama frekansı ne kadar yüksek olursa konumlama o kadar iyi olur. ancak hız hesaplaması için eğer frekans yüksekse ortalama bir şey alınki hızınız bir çok yüksek bir çok düşük olarak hesaplanmasın.
 
 ---
 

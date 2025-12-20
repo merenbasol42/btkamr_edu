@@ -12,7 +12,7 @@ def generate_launch_description():
     pkg_share = get_package_share_directory("btkamr_simulate")
     cfg_path = os.path.join(pkg_share, "config")
 
-    slam_tb_params_cfg = os.path.join(cfg_path, "slam_tb_on_async_mapping.yaml")
+    slam_tb_params_cfg = os.path.join(cfg_path, "stb_localization.yaml")
 
     return LaunchDescription([
         Node(
@@ -30,7 +30,7 @@ def generate_launch_description():
                 )
             ),
             launch_arguments={
-                "slam_params_file": slam_tb_params_cfg
+                "slam_params_file": slam_tb_params_cfg,
             }.items()
         )
     ])
