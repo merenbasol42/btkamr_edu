@@ -1,0 +1,37 @@
+[0.874s] Invoking command in '/home/meren/Projects/btkamr_edu/app_ws/src/btkamr_sim_scripts': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/meren/Projects/btkamr_edu/build/btkamr_sim_scripts/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/meren/Projects/btkamr_edu/install/btkamr_sim_scripts/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/btkamr_sim_scripts build --build-base /home/meren/Projects/btkamr_edu/build/btkamr_sim_scripts/build install --record /home/meren/Projects/btkamr_edu/build/btkamr_sim_scripts/install.log --single-version-externally-managed install_data
+[1.075s] running egg_info
+[1.075s] creating ../../../build/btkamr_sim_scripts/btkamr_sim_scripts.egg-info
+[1.091s] writing ../../../build/btkamr_sim_scripts/btkamr_sim_scripts.egg-info/PKG-INFO
+[1.091s] writing dependency_links to ../../../build/btkamr_sim_scripts/btkamr_sim_scripts.egg-info/dependency_links.txt
+[1.092s] writing entry points to ../../../build/btkamr_sim_scripts/btkamr_sim_scripts.egg-info/entry_points.txt
+[1.092s] writing requirements to ../../../build/btkamr_sim_scripts/btkamr_sim_scripts.egg-info/requires.txt
+[1.092s] writing top-level names to ../../../build/btkamr_sim_scripts/btkamr_sim_scripts.egg-info/top_level.txt
+[1.092s] writing manifest file '../../../build/btkamr_sim_scripts/btkamr_sim_scripts.egg-info/SOURCES.txt'
+[1.124s] reading manifest file '../../../build/btkamr_sim_scripts/btkamr_sim_scripts.egg-info/SOURCES.txt'
+[1.125s] writing manifest file '../../../build/btkamr_sim_scripts/btkamr_sim_scripts.egg-info/SOURCES.txt'
+[1.125s] running build
+[1.125s] running build_py
+[1.125s] creating /home/meren/Projects/btkamr_edu/build/btkamr_sim_scripts/build
+[1.125s] creating /home/meren/Projects/btkamr_edu/build/btkamr_sim_scripts/build/lib
+[1.125s] creating /home/meren/Projects/btkamr_edu/build/btkamr_sim_scripts/build/lib/btkamr_sim_scripts
+[1.125s] copying btkamr_sim_scripts/odom_to_tf.py -> /home/meren/Projects/btkamr_edu/build/btkamr_sim_scripts/build/lib/btkamr_sim_scripts
+[1.125s] copying btkamr_sim_scripts/__init__.py -> /home/meren/Projects/btkamr_edu/build/btkamr_sim_scripts/build/lib/btkamr_sim_scripts
+[1.125s] running install
+[1.131s] running install_lib
+[1.148s] creating /home/meren/Projects/btkamr_edu/install/btkamr_sim_scripts/lib/python3.12/site-packages/btkamr_sim_scripts
+[1.149s] copying /home/meren/Projects/btkamr_edu/build/btkamr_sim_scripts/build/lib/btkamr_sim_scripts/odom_to_tf.py -> /home/meren/Projects/btkamr_edu/install/btkamr_sim_scripts/lib/python3.12/site-packages/btkamr_sim_scripts
+[1.149s] copying /home/meren/Projects/btkamr_edu/build/btkamr_sim_scripts/build/lib/btkamr_sim_scripts/__init__.py -> /home/meren/Projects/btkamr_edu/install/btkamr_sim_scripts/lib/python3.12/site-packages/btkamr_sim_scripts
+[1.149s] byte-compiling /home/meren/Projects/btkamr_edu/install/btkamr_sim_scripts/lib/python3.12/site-packages/btkamr_sim_scripts/odom_to_tf.py to odom_to_tf.cpython-312.pyc
+[1.149s] byte-compiling /home/meren/Projects/btkamr_edu/install/btkamr_sim_scripts/lib/python3.12/site-packages/btkamr_sim_scripts/__init__.py to __init__.cpython-312.pyc
+[1.150s] running install_data
+[1.150s] creating /home/meren/Projects/btkamr_edu/install/btkamr_sim_scripts/share/ament_index
+[1.150s] creating /home/meren/Projects/btkamr_edu/install/btkamr_sim_scripts/share/ament_index/resource_index
+[1.150s] creating /home/meren/Projects/btkamr_edu/install/btkamr_sim_scripts/share/ament_index/resource_index/packages
+[1.150s] copying resource/btkamr_sim_scripts -> /home/meren/Projects/btkamr_edu/install/btkamr_sim_scripts/share/ament_index/resource_index/packages
+[1.150s] copying package.xml -> /home/meren/Projects/btkamr_edu/install/btkamr_sim_scripts/share/btkamr_sim_scripts
+[1.150s] running install_egg_info
+[1.168s] Copying ../../../build/btkamr_sim_scripts/btkamr_sim_scripts.egg-info to /home/meren/Projects/btkamr_edu/install/btkamr_sim_scripts/lib/python3.12/site-packages/btkamr_sim_scripts-0.0.0-py3.12.egg-info
+[1.169s] running install_scripts
+[1.280s] Installing odom_to_tf script to /home/meren/Projects/btkamr_edu/install/btkamr_sim_scripts/lib/btkamr_sim_scripts
+[1.281s] writing list of installed files to '/home/meren/Projects/btkamr_edu/build/btkamr_sim_scripts/install.log'
+[1.320s] Invoked command in '/home/meren/Projects/btkamr_edu/app_ws/src/btkamr_sim_scripts' returned '0': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/meren/Projects/btkamr_edu/build/btkamr_sim_scripts/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/meren/Projects/btkamr_edu/install/btkamr_sim_scripts/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../../build/btkamr_sim_scripts build --build-base /home/meren/Projects/btkamr_edu/build/btkamr_sim_scripts/build install --record /home/meren/Projects/btkamr_edu/build/btkamr_sim_scripts/install.log --single-version-externally-managed install_data
